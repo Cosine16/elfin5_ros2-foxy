@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>cos_shape</name>
+  <version>0.1.0</version>
+  <description>
+    Shape / trajectory demos for the cos_ws Elfin5 workspace.
+    circle_motion: 让机械臂末端围绕某个三维点按指定角速度/线速度和倾角做圆周运动。
+  </description>
+  <maintainer email="2395058425@qq.com">xtsinghang</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>rclcpp</depend>
+  <depend>moveit_core</depend>
+  <depend>moveit_ros_planning_interface</depend>
+  <depend>geometry_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>trajectory_msgs</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
