@@ -1,0 +1,46 @@
+# =====================================================================
+# Elfin5 仿真开发容器（Windows 11 + Docker Desktop / WSL2 后端）
+#
+# 前提（Windows 侧）：
+#   1. 安装较新的 NVIDIA 显卡驱动（GTX1050，Game Ready/Studio 均可）
+#   2. Docker Desktop 使用 WSL2 后端
+#   3. 显示用 Windows 侧 X server：VcXsrv 以 `vcxsrv -ac -wgl` 启动
+#      （-wgl 让 OpenGL 渲染走 Windows 侧 GPU），或 X410 开 Native OpenGL
+#   4. 验证 GPU 直通可用：docker run --rm --gpus all ubuntu:22.04 ls /dev/dxg
+#
+# 用法（仓库根目录）：
+#   docker compose build      # 首次或 Dockerfile 变更后
+#   docker compose up -d      # 启动；之后 VS Code “附加到正在运行的容器”
+#   docker compose down       # 停止并删除容器（代码在挂载目录，不受影响）
+#
+# 注意：本仓库需要先放到 Windows/WSL 文件系统上再 up（例如把旧容器里的
+# /root/cos_ws 拷到 C:\ 下某目录后，在该目录执行 compose）。
+# =====================================================================
+services:
+  sim:
+    build: .
+    image: cos-elfin-foxy:dev
+    container_name: elfin_sim
+    # tini 作为 PID 1 回收孤儿/僵尸进程（解决 ros2 <defunct> 越积越多）
+    init: true
+    # NVIDIA GPU 直通：注入 /dev/dxg 与 /usr/lib/wsl/lib（CUDA + mesa d3d12）
+    # 注：gzclient/RViz 的画面渲染在 X server（VcXsrv -wgl / X410）侧由
+    # Windows GPU 完成；d3d12 直通主要惠及容器内 EGL/CUDA 类负载。
+    gpus: all
+    # ROS2 DDS 多播/实机 EtherCAT 需要 host 网络
+    network_mode: host
+    ipc: host
+    working_dir: /root/cos_ws
+    environment:
+      # Windows 侧 X server 地址（Docker Desktop 内置域名，host 网络下也生效）
+      - DISPLAY=host.docker.internal:0
+      # mesa d3d12 驱动库路径（容器无 GPU 时该目录不存在，无副作用）
+      - LD_LIBRARY_PATH=/usr/lib/wsl/lib
+      # 多显卡机器优先选 N 卡；可按需改为具体适配器名
+      - MESA_D3D12_DEFAULT_ADAPTER_NAME=NVIDIA
+    volumes:
+      # 代码/构建产物都在宿主机，容器随意删。
+      # 注意：仓库放 Windows C:\ 时 colcon 构建会因跨文件系统变慢；
+      # 追求构建速度可把仓库放进某个 WSL2 发行版的 ext4 里再挂载。
+      - .:/root/cos_ws
+    command: ["tail", "-f", "/dev/null"]

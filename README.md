@@ -5,14 +5,43 @@
 
 ## 运行环境
 
-- 主机：Windows 11 专业版 + Docker Desktop（WSL2）
+- 主机：Windows 11 专业版 + Docker Desktop（WSL2），NVIDIA GTX1050
 - 容器：Ubuntu 20.04 + ROS2 **Foxy** + Gazebo 11 + MoveIt2 2.2.3
-- GUI：通过 X11 转发（`DISPLAY`）显示 Gazebo / RViz
+- GUI：通过 Windows 侧 X server（VcXsrv `-ac -wgl` / X410 Native OpenGL）显示 Gazebo / RViz
+- 生产环境：裸机 Ubuntu 20.04 LTS（安装脚本见下文）
+
+## 开发容器（推荐方式）
+
+环境由 `Dockerfile` 固化，容器可随时删了重建；代码通过挂载放在宿主机上。
+
+```sh
+# Windows 侧，本仓库根目录：
+docker compose build      # 首次或 Dockerfile 变更后
+docker compose up -d      # 启动后用 VS Code “附加到正在运行的容器” 进入开发
+docker compose down       # 停止并删除容器（代码在挂载目录，不受影响）
+```
+
+- `init: true` 解决了容器无 init 导致僵尸进程堆积的问题
+- `gpus: all` 直通 GTX1050（需 Windows 侧 NVIDIA 驱动）；配合 `VcXsrv -wgl` 渲染走 GPU，
+  显著降低 gzclient/RViz 的 CPU 占用（gzserver 物理仿真始终是 CPU 负载）
+- 验证 GPU 是否生效：容器内 `glxinfo -B | grep renderer`
+- 详细说明见 `docker-compose.yml` 头部注释
+
+## 生产环境（裸机 Ubuntu 20.04 LTS）
+
+```sh
+git clone git@github.com:Cosine16/cos_ws.git ~/cos_ws
+~/cos_ws/scripts/setup_ubuntu2004.sh    # 装 ROS2 Foxy/Gazebo/MoveIt2 依赖并构建
+```
+
+`setup_ubuntu2004.sh` 与 `Dockerfile` 共用同一份依赖清单，两边同步维护。
 
 ## 目录结构
 
 ```
 cos_ws/
+├── Dockerfile             # 开发容器环境（依赖清单与生产脚本共用）
+├── docker-compose.yml     # 一键起容器：init 回收僵尸、GPU 直通、代码挂载
 ├── elfin_ws/              # ROS2 (colcon) 工作空间 —— 主要开发场所
 │   ├── src/elfin_robot/   # 华沿官方 ROS2 包
 │   │   ├── elfin_description/      # URDF / meshes
@@ -31,6 +60,7 @@ cos_ws/
 │   ├── start_sim.sh       # 启动仿真（有终端模拟器开窗口，容器内自动转后台进程）
 │   ├── start_sim.py       # 同上（多机型版本，依赖 gnome-terminal 等）
 │   ├── wait_for_ros.sh    # 等待某个 ROS2 service/node 出现
+│   ├── setup_ubuntu2004.sh # 生产裸机（Ubuntu 20.04）依赖安装 + 构建
 │   └── legacy/            # 实机（EtherCAT）脚本与诊断文档（start_real.py / calib_zero.py 等）
 ├── windows_sdk/           # 华沿 C++ SDK（Windows 主机侧，MinGW/DLL，与容器无关）
 └── document/              # 官方文档 + 自研分析文档

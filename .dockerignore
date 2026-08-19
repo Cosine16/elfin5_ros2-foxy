@@ -1,0 +1,7 @@
+# 构建上下文只用于 Dockerfile，不 COPY 源码；排除大目录避免拖慢 build
+.git
+elfin_ws/build
+elfin_ws/install
+elfin_ws/log
+**/__pycache__
+.vscode
