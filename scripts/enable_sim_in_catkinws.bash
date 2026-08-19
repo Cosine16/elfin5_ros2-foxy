@@ -1,5 +1,5 @@
 
-cd ~/cos_ws/ros2_ws
+cd ~/cos_ws/references
 source ./install/setup.bash
 
 

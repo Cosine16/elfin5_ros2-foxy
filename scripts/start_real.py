@@ -7,7 +7,7 @@ start_real.py
 启动真实的 Elfin 机械臂。
 
 每个终端中依次执行:
-    1. source ~/cos_ws/ros2_ws/install/setup.bash
+    1. source ~/cos_ws/references/install/setup.bash
     2. sudo + ros2 launch <实机命令>
 
 启动的 4 个终端:
@@ -24,7 +24,7 @@ start_real.py
     python3 start_real.py --wait-timeout 180 # 设置依赖等待超时(秒), 默认 120
     python3 start_real.py --check            # 只检查环境是否就绪, 不启动终端
     python3 start_real.py --list             # 只打印命令, 不启动终端
-    python3 start_real.py --workspace ~/cos_ws/ros2_ws   # 指定工作空间路径
+    python3 start_real.py --workspace ~/cos_ws/references   # 指定工作空间路径
 
 启动顺序(严格 1→2→3→4, 后一步会等待前一步就绪):
     1. 硬件驱动(EtherCAT 主站 + controller_manager)
@@ -52,7 +52,7 @@ import sys
 # ---------------------------------------------------------------------------
 # 可配置项
 # ---------------------------------------------------------------------------
-CATKIN_WS = os.path.expanduser("~/cos_ws/ros2_ws")  # 工作空间路径(可被 --workspace 覆盖)
+CATKIN_WS = os.path.expanduser("~/cos_ws/references")  # 工作空间路径(可被 --workspace 覆盖)
 SETUP_SCRIPT = os.path.join(CATKIN_WS, "install", "setup.bash")
 BRINGUP_CONFIG = os.path.join(
     CATKIN_WS, "src", "elfin_robot", "elfin_robot_bringup", "config"
@@ -315,7 +315,7 @@ def main():
     parser.add_argument("--list", action="store_true",
                         help="只打印将要执行的命令, 不启动终端")
     parser.add_argument("--workspace", default=CATKIN_WS,
-                        help="工作空间路径, 默认 ~/cos_ws/ros2_ws")
+                        help="工作空间路径, 默认 ~/cos_ws/references")
     parser.add_argument("--wait-timeout", type=int, default=120,
                         help="等待上一步依赖就绪的超时秒数, 默认 120")
     parser.add_argument("--no-wait", action="store_true",

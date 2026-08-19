@@ -40,7 +40,7 @@ import subprocess
 import sys
 
 # 配置文件的默认位置 (可通过 --workspace 覆盖)
-DEFAULT_WS = os.path.expanduser("~/cos_ws/ros2_ws")
+DEFAULT_WS = os.path.expanduser("~/cos_ws/references")
 CONFIG_REL = os.path.join("src", "elfin_robot", "elfin_robot_bringup",
                           "config", "elfin_arm_control.yaml")
 
@@ -197,7 +197,7 @@ def main():
     parser.add_argument("--iface", default=None,
                         help="指定网卡名称 (默认读取 elfin_arm_control.yaml 配置)")
     parser.add_argument("--workspace", default=DEFAULT_WS,
-                        help="工作空间路径 (用于定位配置文件), 默认 ~/cos_ws/ros2_ws")
+                        help="工作空间路径 (用于定位配置文件), 默认 ~/cos_ws/references")
     parser.add_argument("--target", default=None,
                         help="只扫描指定 IP 的端口, 不扫描整个子网")
     parser.add_argument("--ports", default="1-1024",

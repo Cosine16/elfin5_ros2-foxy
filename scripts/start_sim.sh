@@ -10,11 +10,11 @@
 #
 # 环境变量:
 #   SIM_NO_SUDO=1   禁用 sudo（默认使用 `sudo -E`）
-#   SIM_WS=<path>   覆盖工作空间路径（默认 ~/cos_ws/ros2_ws）
+#   SIM_WS=<path>   覆盖工作空间路径（默认 ~/cos_ws/references）
 # =====================================================================
 set -euo pipefail
 
-WS="${SIM_WS:-$HOME/cos_ws/ros2_ws}"
+WS="${SIM_WS:-$HOME/cos_ws/references}"
 SETUP="$WS/install/setup.bash"
 
 # sudo 处理：默认 `sudo -E`；SIM_NO_SUDO=1 关闭；已是 root 自动关闭
@@ -88,7 +88,7 @@ case "${1:-}" in
 
 使用 Ubuntu 系统自带终端（gnome-terminal 等），无需 VS Code。
 默认以 sudo -E 运行；如需禁用: SIM_NO_SUDO=1 ./start_sim.sh
-环境变量: SIM_WS=<path> 可覆盖工作空间路径（默认 ~/cos_ws/ros2_ws）
+环境变量: SIM_WS=<path> 可覆盖工作空间路径（默认 ~/cos_ws/references）
 HELP
     ;;
 esac

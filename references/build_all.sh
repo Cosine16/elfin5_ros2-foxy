@@ -11,10 +11,10 @@ export HOME=/home/fit
 export PATH=/usr/bin:/bin:/usr/local/bin
 
 # 清理之前的失败产物
-rm -rf /home/fit/cos_ws/ros2_ws/build /home/fit/cos_ws/ros2_ws/install /home/fit/cos_ws/ros2_ws/log
+rm -rf /home/fit/cos_ws/references/build /home/fit/cos_ws/references/install /home/fit/cos_ws/references/log
 
 source /opt/ros/foxy/setup.bash
-cd /home/fit/cos_ws/ros2_ws
+cd /home/fit/cos_ws/references
 
 echo "=== 开始构建: $(date) ==="
 colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release
