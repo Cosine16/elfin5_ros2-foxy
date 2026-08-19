@@ -75,7 +75,7 @@
           rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
       </material>
     </visual>
-    <collisi三>
+    <collision>
       <origin
         xyz="0 0 0"
         rpy="0 0 0" />
