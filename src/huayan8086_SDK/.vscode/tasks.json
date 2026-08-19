@@ -1,0 +1,94 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build-cpp-debug",
+            "detail": "MinGW-w64 debug build (cli.exe + shutdown.exe)",
+            "type": "shell",
+            "command": "D:/workspace/toolchain/mingw-build/mingw64/bin/mingw32-make.exe",
+            "args": [
+                "debug"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/src/cpp/scripts",
+                "env": {
+                    "PATH": "D:/workspace/toolchain/mingw-build/mingw64/bin;${env:PATH}"
+                }
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ]
+        },
+        {
+            "label": "build-cpp-release",
+            "detail": "MinGW-w64 release build",
+            "type": "shell",
+            "command": "D:/workspace/toolchain/mingw-build/mingw64/bin/mingw32-make.exe",
+            "args": [
+                "release"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/src/cpp/scripts",
+                "env": {
+                    "PATH": "D:/workspace/toolchain/mingw-build/mingw64/bin;${env:PATH}"
+                }
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ]
+        },
+        {
+            "label": "build-csharp",
+            "detail": ".NET 10 build",
+            "type": "shell",
+            "command": "dotnet",
+            "args": [
+                "build",
+                "${workspaceFolder}/src/csharp/cli.csproj"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/src/csharp"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": [
+                "$msCompile"
+            ]
+        },
+        {
+            "label": "build-all",
+            "detail": "Build C++ debug + C#",
+            "dependsOn": [
+                "build-cpp-debug",
+                "build-csharp"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": []
+        }
+    ]
+}
