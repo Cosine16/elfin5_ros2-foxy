@@ -47,7 +47,13 @@ TERM_CMD="$(detect_terminal)" || {
 #   open_term <窗口标题> <包名> <launch文件>
 open_term() {
   local name="$1" pkg="$2" launch="$3"
-  local inner="source '$SETUP' && $SUDO bash -c 'ros2 launch $pkg $launch' || { echo; echo '>>> 启动失败，5 秒后关闭'; sleep 5; }"
+  local inner
+  if [ -n "$SUDO" ]; then
+    # sudo 会重置 PATH（secure_path），必须在 sudo 内部重新 source 才能找到 ros2
+    inner="sudo -E bash -c 'source $SETUP && ros2 launch $pkg $launch' || { echo; echo '>>> 启动失败，5 秒后关闭'; sleep 5; }"
+  else
+    inner="source '$SETUP' && ros2 launch $pkg $launch || { echo; echo '>>> 启动失败，5 秒后关闭'; sleep 5; }"
+  fi
   case "$TERM_CMD" in
     gnome-terminal)
       gnome-terminal --title="$name" -- bash -c "$inner" &
