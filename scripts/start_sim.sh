@@ -8,19 +8,32 @@
 #   ./start_sim.sh moveit2     只打开 moveit2 终端窗口
 #   ./start_sim.sh gazebo      只打开 gazebo 终端窗口
 #
+# 说明:
+#   - 请以【普通用户】运行本脚本（勿加 sudo）：gnome-terminal 无法以 root 打开窗口
+#   - 仿真命令默认以普通用户执行，gzclient/rviz/GUI 才能正常显示
+#   - 如确需以 root 执行仿真命令: SIM_SUDO=1 ./scripts/start_sim.sh
+#
 # 环境变量:
-#   SIM_NO_SUDO=1   禁用 sudo（默认使用 `sudo -E`）
+#   SIM_SUDO=1      以 `sudo -E` 执行仿真命令（默认普通用户运行）
 #   SIM_WS=<path>   覆盖工作空间路径（默认 ~/cos_ws/references）
 # =====================================================================
 set -euo pipefail
 
+# 拒绝以 root 运行：gnome-terminal 无法以 root 打开终端窗口
+if [ "$(id -u)" = "0" ]; then
+  echo "错误: 请勿用 sudo 运行本脚本 —— gnome-terminal 无法以 root 打开窗口。" >&2
+  echo "请以普通用户运行: cd ~/cos_ws && ./scripts/start_sim.sh" >&2
+  echo "（仿真命令默认普通用户执行，GUI 才能正常显示；如需 root 执行: SIM_SUDO=1）" >&2
+  exit 1
+fi
+
 WS="${SIM_WS:-$HOME/cos_ws/references}"
 SETUP="$WS/install/setup.bash"
 
-# sudo 处理：默认 `sudo -E`；SIM_NO_SUDO=1 关闭；已是 root 自动关闭
-SUDO="sudo -E"
-[ "${SIM_NO_SUDO:-0}" = "1" ] && SUDO=""
-[ "$(id -u)" = "0" ] && SUDO=""
+# sudo 处理：默认【不使用】sudo（仿真 GUI 需普通用户才能正常显示）；
+# 设置 SIM_SUDO=1 时才用 `sudo -E` 执行仿真命令。
+SUDO=""
+[ "${SIM_SUDO:-0}" = "1" ] && SUDO="sudo -E"
 
 need_setup() {
   if [ ! -f "$SETUP" ]; then
@@ -93,7 +106,8 @@ case "${1:-}" in
   ./start_sim.sh gazebo      只打开 gazebo 窗口
 
 使用 Ubuntu 系统自带终端（gnome-terminal 等），无需 VS Code。
-默认以 sudo -E 运行；如需禁用: SIM_NO_SUDO=1 ./start_sim.sh
+请以普通用户运行（勿加 sudo）；仿真命令默认普通用户执行，GUI 才能正常显示。
+如需以 root 执行: SIM_SUDO=1 ./start_sim.sh
 环境变量: SIM_WS=<path> 可覆盖工作空间路径（默认 ~/cos_ws/references）
 HELP
     ;;
