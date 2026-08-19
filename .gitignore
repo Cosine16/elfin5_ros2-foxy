@@ -8,6 +8,7 @@ build/
 install/
 log/
 build_all.log
+compile_commands.json
 
 # ---- .NET / C/C++ 编译产物 ----
 bin/
