@@ -16,6 +16,8 @@
 //   订阅 ~/set_linear_velocity  (std_msgs/Float64)  m/s，  同时切换到线速度模式
 //   订阅 ~/set_center           (geometry_msgs/Point) 圆心，下一圈生效
 //   订阅 ~/set_inclination      (std_msgs/Float64)  倾角 rad，下一圈生效
+//   订阅 ~/set_azimuth          (std_msgs/Float64)  方位角 rad，下一圈生效
+//   订阅 ~/set_radius           (std_msgs/Float64)  半径 m，下一圈生效
 //   订阅 ~/enable               (std_msgs/Bool)     true 开始 / false 停止
 //   发布 ~/state                (std_msgs/String)   每圈结束发布一次状态摘要
 //
@@ -141,6 +143,20 @@ public:
           std::lock_guard<std::mutex> lk(mtx_);
           cfg_.inclination = msg->data;
           RCLCPP_INFO(get_logger(), "倾角更新为 %.4f rad（下一圈生效）", msg->data);
+        });
+    sub_azimuth_ = create_subscription<std_msgs::msg::Float64>(
+        "~/set_azimuth", 10,
+        [this](const std_msgs::msg::Float64::SharedPtr msg) {
+          std::lock_guard<std::mutex> lk(mtx_);
+          cfg_.azimuth = msg->data;
+          RCLCPP_INFO(get_logger(), "方位角更新为 %.4f rad（下一圈生效）", msg->data);
+        });
+    sub_radius_ = create_subscription<std_msgs::msg::Float64>(
+        "~/set_radius", 10,
+        [this](const std_msgs::msg::Float64::SharedPtr msg) {
+          std::lock_guard<std::mutex> lk(mtx_);
+          cfg_.radius = msg->data;
+          RCLCPP_INFO(get_logger(), "半径更新为 %.4f m（下一圈生效）", msg->data);
         });
     sub_enable_ = create_subscription<std_msgs::msg::Bool>(
         "~/enable", 10,
@@ -390,6 +406,8 @@ private:
   rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr sub_linear_;
   rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr sub_center_;
   rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr sub_inclination_;
+  rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr sub_azimuth_;
+  rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr sub_radius_;
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr sub_enable_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr pub_state_;
 };

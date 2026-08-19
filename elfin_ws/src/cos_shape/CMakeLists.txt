@@ -31,6 +31,9 @@ ament_target_dependencies(circle_motion
 install(TARGETS circle_motion
   DESTINATION lib/${PROJECT_NAME})
 
+install(PROGRAMS scripts/circle_panel.py
+  DESTINATION lib/${PROJECT_NAME})
+
 install(DIRECTORY launch
   DESTINATION share/${PROJECT_NAME})
 

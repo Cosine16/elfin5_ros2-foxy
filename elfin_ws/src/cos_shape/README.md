@@ -64,9 +64,25 @@ ros2 topic pub --once /circle_motion/set_linear_velocity  std_msgs/msg/Float64 "
 # 改倾角（竖直圆 = 1.5708）
 ros2 topic pub --once /circle_motion/set_inclination std_msgs/msg/Float64 "{data: 1.5708}"
 
+# 改方位角 / 半径
+ros2 topic pub --once /circle_motion/set_azimuth std_msgs/msg/Float64 "{data: 0.7854}"
+ros2 topic pub --once /circle_motion/set_radius std_msgs/msg/Float64 "{data: 0.08}"
+
 # 看状态（每圈一条）
 ros2 topic echo /circle_motion/state
 ```
+
+### 调参面板（wxPython GUI）
+
+容器内一次性 `ros2 topic pub` 偶发丢包，推荐使用长驻的图形面板调参：
+
+```sh
+source ~/cos_ws/elfin_ws/install/setup.bash
+ros2 run cos_shape circle_panel.py
+```
+
+面板可在线修改圆心/半径/速度（角速度或线速度）/倾角/方位角并提供启停按钮，
+底部显示 `~/state` 状态。所有修改下一圈生效。
 
 ### 注意
 
