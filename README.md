@@ -14,21 +14,26 @@
 ```
 cos_ws/
 ├── elfin_ws/              # ROS2 (colcon) 工作空间 —— 主要开发场所
-│   ├── src/elfin_robot/   # 华沿官方 ROS2 包（仿真最小集，5 个包）
+│   ├── src/elfin_robot/   # 华沿官方 ROS2 包
 │   │   ├── elfin_description/      # URDF / meshes
 │   │   ├── elfin_robot_msgs/       # 服务/消息定义
 │   │   ├── elfin_basic_api/        # 后台 API + Elfin Control Panel GUI
-│   │   └── elfin5/
-│   │       ├── elfin5_ros2_gazebo/   # Gazebo 仿真（world / xacro / controller 配置）
-│   │       └── elfin5_ros2_moveit2/  # MoveIt2 配置与 launch
+│   │   ├── elfin5/
+│   │   │   ├── elfin5_ros2_gazebo/   # Gazebo 仿真（world / xacro / controller 配置）
+│   │   │   └── elfin5_ros2_moveit2/  # MoveIt2 配置与 launch（仿真/真机入口都在这里）
+│   │   ├── soem_ros2/              # SOEM EtherCAT 主站库封装（实机）
+│   │   ├── elfin_ethercat_driver/  # EtherCAT 驱动节点（实机）
+│   │   ├── elfin_ros_control/      # ros2_control 硬件接口插件（实机）
+│   │   └── elfin_robot_bringup/    # 实机参数（网口/从站/标定）与驱动 launch
+│   ├── src/cos_shape/     # 自研应用：末端轨迹形状演示（当前为圆周运动 + 调参面板）
 │   └── build_all.sh       # 一键清理 + 构建（路径自适应）
 ├── scripts/
 │   ├── start_sim.sh       # 启动仿真（有终端模拟器开窗口，容器内自动转后台进程）
 │   ├── start_sim.py       # 同上（多机型版本，依赖 gnome-terminal 等）
 │   ├── wait_for_ros.sh    # 等待某个 ROS2 service/node 出现
-│   └── legacy/            # 实机（EtherCAT）时代的脚本与诊断文档，接真机时再用
+│   └── legacy/            # 实机（EtherCAT）脚本与诊断文档（start_real.py / calib_zero.py 等）
 ├── windows_sdk/           # 华沿 C++ SDK（Windows 主机侧，MinGW/DLL，与容器无关）
-└── document/              # 华沿官方 GitHub 文档（API 说明、MoveIt 插件教程等）
+└── document/              # 官方文档 + 自研分析文档
 ```
 
 ## 快速开始（仿真）
@@ -53,11 +58,20 @@ ros2 launch elfin5_ros2_moveit2 elfin5.launch.py          # Gazebo + MoveIt2 + R
 ros2 launch elfin_basic_api fake_elfin_gui.launch.py      # Control Panel（仿真用 fake 版）
 ```
 
+## 真机（EtherCAT）
+
+实机包（`soem_ros2` / `elfin_ethercat_driver` / `elfin_ros_control` / `elfin_robot_bringup`）已在工作空间内。
+启动流程（4 个终端按序，需 PREEMPT_RT 内核）见 **`document/架构与数据流.md`** 真机章节，
+一键脚本与诊断指令在 `scripts/legacy/`（`start_real.py`、`诊断指令.md`）。
+
+## 文档
+
+- **`document/架构与数据流.md`** —— 全部包/节点/topic/service 清单、仿真与真机启动命令、数据流图（Obsidian/mermaid）
+- **`document/已知问题.md`** —— 坑与断链清单（launch 死代码、硬编码网卡、标定注意事项等）
+- `document/README _cn.md`、`API_description.md`、`moveit_plugin_tutorial.md` —— 华沿官方文档
+
 ## 说明
 
-- `elfin_ws/src/elfin_robot/` 是官方包的仿真子集；实机所需的
-  `elfin_robot_bringup` / `elfin_ethercat_driver` 等包不在当前仓库中，
-  相关脚本已归档至 `scripts/legacy/`。
 - `windows_sdk/` 在 Windows 主机上用 MinGW 编译运行，通过 TCP（`192.168.10.10:10003`）
   直连控制柜，不经过 ROS，也不要放进 colcon 工作空间。
 - 容器内没有 gnome-terminal，`start_sim.sh` 会自动切换为后台进程模式；
