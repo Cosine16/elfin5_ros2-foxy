@@ -38,8 +38,13 @@ def load_yaml(package_name, file_path):
 
 def generate_launch_description():
     
-    # *********************** Gazebo *********************** # 
-    
+    # *********************** Gazebo *********************** #
+
+    # Gazebo GUI 开关: gui:=false 时只跑 gzserver（无头模式），
+    # 可省掉 gzclient 的软件渲染 CPU 开销（容器内约 46% CPU）。
+    gui_arg = DeclareLaunchArgument(
+        'gui', default_value='true',
+        description='Start Gazebo gzclient GUI (false = headless, saves CPU)')
     # DECLARE Gazebo WORLD file:
     elfin5_ros2_gazebo = os.path.join(
         get_package_share_directory('elfin5_ros2_gazebo'),
@@ -49,7 +54,8 @@ def generate_launch_description():
     gazebo = IncludeLaunchDescription(
                 PythonLaunchDescriptionSource([os.path.join(
                     get_package_share_directory('gazebo_ros'), 'launch'), '/gazebo.launch.py']),
-                launch_arguments={'world': elfin5_ros2_gazebo}.items(),
+                launch_arguments={'world': elfin5_ros2_gazebo,
+                                  'gui': LaunchConfiguration('gui')}.items(),
              )
 
     # ***** ROBOT DESCRIPTION ***** #
@@ -231,6 +237,7 @@ def generate_launch_description():
     return LaunchDescription(
         [
             # Gazebo nodes:
+            gui_arg,
             gazebo, 
             spawn_entity,
             

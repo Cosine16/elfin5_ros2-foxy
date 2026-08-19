@@ -16,6 +16,7 @@
 # 环境变量:
 #   SIM_SUDO=1      以 `sudo -E` 执行仿真命令（默认不用 sudo；已是 root 自动忽略）
 #   SIM_WS=<path>   覆盖工作空间路径（默认 ~/cos_ws/elfin_ws）
+#   SIM_GPU_ADAPTER=<关键字>  WSL2 GPU 直通时指定 mesa d3d12 显卡适配器（默认 NVIDIA）
 # =====================================================================
 set -euo pipefail
 
@@ -27,6 +28,27 @@ LOG_DIR="$WS/log/sim"
 # 设置 SIM_SUDO=1 时才用 `sudo -E`；已是 root 时忽略。
 SUDO=""
 [ "${SIM_SUDO:-0}" = "1" ] && [ "$(id -u)" != "0" ] && SUDO="sudo -E"
+
+# ---- GPU 渲染（Docker Desktop WSL2 后端 + NVIDIA 显卡直通）----
+# 容器以 `--gpus all` 重建后会出现 /dev/dxg 和 /usr/lib/wsl/lib（DX12 驱动库）。
+# 容器内 mesa（>=21.0，已含 d3d12_dri.so）可通过它把 OpenGL 渲染交给
+# Windows 侧的 GTX1050，替代纯 CPU 的 llvmpipe。
+# 注意：这只加速渲染（gzclient/RViz）；gzserver 物理仿真始终跑在 CPU 上。
+if [ -e /dev/dxg ] && [ -d /usr/lib/wsl/lib ]; then
+  case ":${LD_LIBRARY_PATH:-}:" in
+    *:/usr/lib/wsl/lib:*) ;;
+    *) export LD_LIBRARY_PATH="/usr/lib/wsl/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" ;;
+  esac
+  # 多显卡机器（如 Intel 核显 + N 卡）指定优先使用 N 卡；可用 SIM_GPU_ADAPTER 覆盖
+  export MESA_D3D12_DEFAULT_ADAPTER_NAME="${SIM_GPU_ADAPTER:-NVIDIA}"
+  unset LIBGL_ALWAYS_SOFTWARE 2>/dev/null || true
+  echo "GPU 渲染: 已启用 mesa d3d12（适配器关键字: ${MESA_D3D12_DEFAULT_ADAPTER_NAME}）"
+  echo "         可用 glxinfo -B 确认 OpenGL renderer 是否为 D3D12 (NVIDIA ...)"
+else
+  echo "提示: 未检测到 /dev/dxg，OpenGL 将使用软件渲染 llvmpipe（很耗 CPU）。"
+  echo "      要用 GTX1050 加速渲染，请在 Windows 侧以 --gpus all 重建本容器；"
+  echo "      或先以无头模式省 CPU: ros2 launch elfin5_ros2_moveit2 elfin5.launch.py gui:=false"
+fi
 
 need_setup() {
   if [ ! -f "$SETUP" ]; then

@@ -1,0 +1,87 @@
+# =============================================================================
+# Doxygen 配置文件 —— cos_shape 包
+# 用法：在包根目录下运行 `doxygen Doxyfile`，文档输出到 ./doc/html/。
+# 若需重新生成全量默认配置，可运行 `doxygen -g` 覆盖本文件。
+# =============================================================================
+
+# ------------------------- 项目信息 -------------------------
+PROJECT_NAME           = "cos_shape"
+PROJECT_NUMBER         = 0.1.0
+PROJECT_BRIEF          = "机械臂圆周运动示例包（cos_shape）"
+PROJECT_LOGO           =
+
+# 文档输出目录（相对包根目录）
+OUTPUT_DIRECTORY       = doc
+
+# 提取范围：即使缺少 Doxygen 注释也尽量提取符号
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = YES
+EXTRACT_STATIC         = YES
+EXTRACT_LOCAL_CLASSES  = YES
+EXTRACT_LOCAL_METHODS  = YES
+EXTRACT_ANON_NSPACES   = NO
+HIDE_UNDOC_MEMBERS     = NO
+HIDE_UNDOC_CLASSES     = NO
+HIDE_FRIEND_COMPOUNDS  = NO
+
+# ------------------------- 输入设置 -------------------------
+# 扫描的源目录/文件（相对包根目录）
+INPUT                  = ./src ./README.md
+
+# 递归扫描子目录
+RECURSIVE              = YES
+
+# 参与文档化的文件类型
+FILE_PATTERNS          = *.cpp *.h *.hpp *.cc *.cxx *.c *.md
+
+# 排除构建产物
+EXCLUDE                =
+EXCLUDE_PATTERNS       = */build/* */install/* */log/*
+EXCLUDE_SYMBOLS        =
+
+# 示例源码（默认自动带出）
+EXAMPLE_PATH           = ./src
+EXAMPLE_PATTERNS       = *.cpp *.h *.hpp
+
+# ------------------------- 输出语言与格式 -------------------------
+OUTPUT_LANGUAGE        = Chinese
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+HTML_FILE_EXTENSION    = .html
+HTML_HEADER            =
+HTML_FOOTER            =
+HTML_STYLESHEET        =
+GENERATE_TREEVIEW      = YES
+DISABLE_INDEX          = NO
+
+GENERATE_LATEX         = NO
+GENERATE_RTF           = NO
+GENERATE_MAN           = NO
+GENERATE_XML           = NO
+GENERATE_DOCBOOK       = NO
+
+# 把 README.md 作为主页（main page）
+USE_MDFILE_AS_MAINPAGE = README.md
+
+# ------------------------- 图表与源码 -------------------------
+HAVE_DOT               = NO
+CLASS_DIAGRAMS         = YES
+UML_LOOK               = NO
+CALL_GRAPH             = NO
+CALLER_GRAPH           = NO
+SOURCE_BROWSER         = YES
+INLINE_SOURCES         = NO
+REFERENCED_BY_RELATION = YES
+REFERENCES_RELATION    = YES
+
+# ------------------------- 其它 -------------------------
+QUIET                  = NO
+WARNINGS               = YES
+WARN_IF_UNDOCUMENTED   = YES
+WARN_IF_DOC_ERROR      = YES
+WARN_NO_PARAMDOC       = YES
+JAVADOC_AUTOBRIEF      = YES
+QT_AUTOBRIEF           = YES
+MULTILINE_CPP_IS_BRIEF = YES
+ALIASES                =
+TAB_SIZE               = 4
