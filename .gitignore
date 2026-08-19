@@ -7,6 +7,7 @@ __pycache__/
 build/
 install/
 log/
+build_all.log
 
 # ---- .NET / C/C++ 编译产物 ----
 bin/

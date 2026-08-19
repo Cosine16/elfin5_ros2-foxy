@@ -7,14 +7,16 @@ unset AMENT_PREFIX_PATH COLCON_PREFIX_PATH CMAKE_PREFIX_PATH ROS_PACKAGE_PATH \
       ROS_LOCALHOST_ONLY ROS_DOMAIN_ID RMW_IMPLEMENTATION PYTHONPATH LD_LIBRARY_PATH \
       PKG_CONFIG_PATH COLCON_DEFAULTS_FILE 2>/dev/null || true
 
-export HOME=/home/fit
 export PATH=/usr/bin:/bin:/usr/local/bin
 
+# 工作空间根目录 = 本脚本所在目录
+WS="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # 清理之前的失败产物
-rm -rf /home/fit/cos_ws/references/build /home/fit/cos_ws/references/install /home/fit/cos_ws/references/log
+rm -rf "$WS/build" "$WS/install" "$WS/log"
 
 source /opt/ros/foxy/setup.bash
-cd /home/fit/cos_ws/references
+cd "$WS"
 
 echo "=== 开始构建: $(date) ==="
 colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release

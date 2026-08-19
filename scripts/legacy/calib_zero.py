@@ -33,7 +33,7 @@ import re
 import subprocess
 import sys
 
-WS = os.path.expanduser("~/cos_ws/references")
+WS = os.path.expanduser("~/cos_ws/elfin_ws")
 BRINGUP_SRC = os.path.join(WS, "src", "elfin_robot", "elfin_robot_bringup", "config")
 ARM_YAML = os.path.join(BRINGUP_SRC, "elfin_arm_control.yaml")
 DRIVERS_YAML = os.path.join(BRINGUP_SRC, "elfin_drivers.yaml")
