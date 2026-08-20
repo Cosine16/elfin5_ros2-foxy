@@ -58,8 +58,11 @@ BRINGUP_CONFIG = os.path.join(
     CATKIN_WS, "src", "elfin_robot", "elfin_robot_bringup", "config"
 )
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))  # 本脚本所在目录 (cos_ws)
-WAIT_HELPER = os.path.join(SCRIPT_DIR, "wait_for_ros.sh")  # 依赖等待辅助脚本
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))  # 本脚本所在目录 (cos_ws/scripts/legacy)
+# 依赖等待辅助脚本在上一级 scripts/ 目录; 若被移动则回退到同目录
+WAIT_HELPER = os.path.join(SCRIPT_DIR, os.pardir, "wait_for_ros.sh")
+if not os.path.isfile(WAIT_HELPER):
+    WAIT_HELPER = os.path.join(SCRIPT_DIR, "wait_for_ros.sh")
 
 # 每个终端启动前的就绪门控, 与 REAL_COMMANDS 的顺序一一对应。
 # 格式: (名称, 类型 service|node, 匹配串); None 表示该步骤无需等待(第一个)。
@@ -122,6 +125,9 @@ TERMINALS = ["gnome-terminal", "konsole", "xterm", "xfce4-terminal", "tilix"]
 def build_payload(launch_args, wait_spec, wait_timeout, no_wait):
     """构建实际执行的命令体: source -> cd -> (等待依赖) -> ros2 launch。"""
     parts = [
+        # DDS 只走回环: 实机网卡被 EtherCAT 占用, 组播发现会超时导致节点互不可见。
+        # (终端以 bash -c 非交互方式运行, 不会读 ~/.bashrc, 必须显式导出)
+        "export ROS_LOCALHOST_ONLY=1",
         "source {}".format(shlex.quote(SETUP_SCRIPT)),
         "cd {}".format(shlex.quote(CATKIN_WS)),
     ]
