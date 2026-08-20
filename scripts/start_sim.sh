@@ -8,8 +8,9 @@
 #      日志写入 $WS/log/sim/<名称>.log
 #
 # 用法:
-#   ./start_sim.sh             同时启动 moveit2 与 gazebo
+#   ./start_sim.sh             同时启动 moveit2、basic_api 与 gazebo
 #   ./start_sim.sh moveit2     只启动 moveit2
+#   ./start_sim.sh basic_api   只启动 basic_api 后台程序
 #   ./start_sim.sh gazebo      只启动 gazebo (Elfin Control Panel GUI)
 #   ./start_sim.sh stop        停止后台方式启动的所有仿真进程
 #
@@ -18,6 +19,11 @@
 #   SIM_WS=<path>   覆盖工作空间路径（默认 ~/cos_ws/elfin_ws）
 # =====================================================================
 set -euo pipefail
+
+# FastRTPS 只走回环网卡：本机 enp2s0 常处于断网/EtherCAT 状态，
+# 默认 DDS 组播发现在该网卡上超时，会导致节点互相看不见、话题无数据。
+# gnome-terminal 以 bash -c 非交互方式运行（不读 ~/.bashrc），必须在这里导出。
+export ROS_LOCALHOST_ONLY=1
 
 WS="${SIM_WS:-$HOME/cos_ws/elfin_ws}"
 SETUP="$WS/install/setup.bash"
@@ -112,9 +118,14 @@ case "${1:-}" in
     need_setup
     launch_one "gazebo" elfin_basic_api fake_elfin_gui.launch.py
     ;;
+  basic_api)
+    need_setup
+    launch_one "basic_api" elfin5_ros2_moveit2 elfin5_basic_api.launch.py
+    ;;
   ""|all)
     need_setup
     launch_one "moveit2" elfin5_ros2_moveit2 elfin5.launch.py
+    launch_one "basic_api" elfin5_ros2_moveit2 elfin5_basic_api.launch.py
     launch_one "gazebo" elfin_basic_api fake_elfin_gui.launch.py
     ;;
   stop)
@@ -123,8 +134,9 @@ case "${1:-}" in
   *)
     cat <<'HELP'
 用法:
-  ./start_sim.sh             同时启动 moveit2 与 gazebo
+  ./start_sim.sh             同时启动 moveit2、basic_api 与 gazebo
   ./start_sim.sh moveit2     只启动 moveit2
+  ./start_sim.sh basic_api   只启动 basic_api 后台程序
   ./start_sim.sh gazebo      只启动 gazebo (Elfin Control Panel GUI)
   ./start_sim.sh stop        停止后台方式启动的仿真进程
 

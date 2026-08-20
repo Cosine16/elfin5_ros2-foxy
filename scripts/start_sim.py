@@ -95,6 +95,9 @@ def build_launch_command(launch_args, use_sudo):
 def build_terminal_command(launch_args, use_sudo):
     """构建终端内执行的完整命令: source -> sudo/ros2 launch -> 保持打开。"""
     parts = [
+        # DDS 只走回环: enp2s0 常处于断网/EtherCAT 状态, 组播发现会超时。
+        # (终端以 bash -c 非交互方式运行, 不读 ~/.bashrc, 必须显式导出)
+        "export ROS_LOCALHOST_ONLY=1",
         "cd {}".format(shlex.quote(CATKIN_WS)),
         "source {}".format(shlex.quote(SETUP_SCRIPT)),
         build_launch_command(launch_args, use_sudo),
