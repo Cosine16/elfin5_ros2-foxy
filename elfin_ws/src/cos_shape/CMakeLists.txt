@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.5)
 project(cos_shape)
 
+# Export compile_commands.json so that clangd / VSCode IntelliSense
+# can locate all include paths (ROS2 headers) from the build database.
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 # Default to C++14 (MoveIt2 Foxy requirement)
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 14)
