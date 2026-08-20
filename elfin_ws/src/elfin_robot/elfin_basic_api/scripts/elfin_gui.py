@@ -929,7 +929,20 @@ class MyFrame(wx.Frame,Node):
         spin_thread.setDaemon(True)
         spin_thread.start()
   
-if __name__=='__main__':  
+if __name__=='__main__':
+    # VS Code attach 调试钩子: ELFIN_GUI_DEBUG=1 时通过 VS Code 自带的 debugpy
+    # 监听 5678 端口; 不调用 wait_for_client(), 未 attach 时零开销照常运行。
+    # 钩子失效(扩展缺失等)只告警, 不影响 GUI 正常启动。
+    if os.environ.get("ELFIN_GUI_DEBUG") == "1":
+        try:
+            import glob, sys
+            sys.path.insert(0, glob.glob(os.path.expanduser(
+                "~/.vscode/extensions/ms-python.debugpy-*/bundled/libs"))[0])
+            import debugpy
+            debugpy.listen(("127.0.0.1", 5678))
+            print("[elfin_gui] debugpy listening on 127.0.0.1:5678")
+        except Exception as e:
+            print("[elfin_gui] debugpy hook failed: {}".format(e))
     app=wx.App(False)  
     myframe=MyFrame(parent=None,id=-1) 
     myframe.Show(True)

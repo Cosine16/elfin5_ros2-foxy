@@ -1,0 +1,13 @@
+{
+    "ROS2.distro": "foxy",
+    "python.autoComplete.extraPaths": [
+        "/opt/ros/foxy/lib/python3.8/site-packages"
+    ],
+    "python.analysis.extraPaths": [
+        "/opt/ros/foxy/lib/python3.8/site-packages"
+    ],
+    "C_Cpp.intelliSenseEngine": "default",
+    "C_Cpp.intelliSenseEngineFallback": "enabled",
+    "C_Cpp.errorSquiggles": "enabled",
+    "cmake.sourceDirectory": "/home/fit/cos_ws/elfin_ws/src/cos_shape"
+}
