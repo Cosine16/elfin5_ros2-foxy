@@ -19,6 +19,18 @@
 ~/cos_ws/scripts/start_sim.sh moveit2
 ```
 
+**机械臂需先摆到"法兰大致朝下"的姿态**（圆周运动锁定启动时刻的末端姿态）。
+从零位（手臂竖直朝天、法兰朝上）直接 enable，MoveIt 会因目标姿态不可达
+（OMPL `Unable to sample any valid states for goal tree`，5 秒超时）而失败。
+一个可用的仿真准备姿态（末端约 [0.475, 0, 0.34]，法兰竖直朝下）：
+
+```sh
+ros2 action send_goal /elfin_arm_controller/follow_joint_trajectory \
+  control_msgs/action/FollowJointTrajectory \
+  "{trajectory: {joint_names: [elfin_joint1, elfin_joint2, elfin_joint3, elfin_joint4, elfin_joint5, elfin_joint6], \
+   points: [{positions: [0.0, -0.2, 1.6, 0.0, 1.4, 0.0], time_from_start: {sec: 5}}]}}"
+```
+
 ### 启动
 
 ```sh
