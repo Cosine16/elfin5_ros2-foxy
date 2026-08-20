@@ -31,7 +31,7 @@ git checkout feature/docker-dev-env
 git remote set-url origin git@github.com:Cosine16/cos_ws.git
 ```
 
-验证：`git log --oneline -2` 第一条应为 `122964d build: dockerized dev env (GPU + init) and bare-metal Ubuntu 20.04 setup`；`Test-Path Dockerfile, docker-compose.yml` 均为 True。
+验证：`git log --oneline -2` 应看到 `402ad0c docs: Windows-side container rebuild runbook...` 和 `122964d build: dockerized dev env...` 两条提交；`Test-Path Dockerfile, docker-compose.yml` 均为 True。
 
 ## 步骤 2：推送分支到 GitHub（代码双保险）
 
