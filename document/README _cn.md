@@ -87,17 +87,17 @@ elfin_ethernet_name: eth0
 启动Elfin硬件，Elfin的控制需要操作系统的实时性支持，运行下面的命令前请先为你的Linux系统内核打好实时补丁。打补丁的方法可以参考这个[教程](http://www.jianshu.com/p/8787e45a9e01)。Elfin机械臂有两种不同版本的EtherCAT从站，在启动硬件前，请先确认你的Elfin的从站版本。
 ```sh
 $ sudo chrt 10 bash
-$ ros2 launch elfin3_ros2_moveit2 elfin3_moveit.launch.py
+$ ros2 launch elfin5_ros2_moveit2 elfin5_moveit.launch.py
 ```
 运行MoveIt!模块, RViz界面:
 ```sh
 $ sudo su
-$ ros2 launch elfin3_ros2_moveit elfin3_moveit_rviz.launch.py
+$ ros2 launch elfin5_ros2_moveit elfin5_moveit_rviz.launch.py
 ```
 运行后台程序：
 ```sh
 $ sudo su
-$ ros2 launch elfin_ros2_moveit2 elfin3_basic_api.launch.py
+$ ros2 launch elfin5_ros2_moveit2 elfin5_basic_api.launch.py
 ```
 运行Elfin Control Panel界面
 ```sh

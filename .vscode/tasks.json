@@ -1,0 +1,49 @@
+{
+    // 真机硬件层(ros2_control_node / EtherCAT)gdb 调试辅助任务。
+    // 调试步骤:
+    //   0. (仅首次)运行 "setup: allow sudo gdb (one-time)"
+    //   1. 运行 "build: ethercat debug (RelWithDebInfo)"(当前 Release -O3 会优化掉局部变量)
+    //   2. 运行 "hardware: elfin5_moveit (root, chrt 10)" 启动硬件侧
+    //   3. 用 launch.json 的 "attach: ros2_control_node (c++, root)" 按 F5 直接 attach
+    "version": "2.0.0",
+    "tasks": [
+        {
+            // 一次性:ros2_control_node 是 root 进程,普通用户的 gdb 无法 attach。
+            // 仅对 /usr/bin/gdb 开 NOPASSWD(不放开其他命令),供 scripts/gdb_sudo.sh 使用。
+            // 卸载方法:sudo rm /etc/sudoers.d/99-gdb-nopasswd
+            "label": "setup: allow sudo gdb (one-time)",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "-c",
+                "echo \"$USER ALL=(ALL) NOPASSWD: /usr/bin/gdb\" | sudo tee /etc/sudoers.d/99-gdb-nopasswd && sudo chmod 440 /etc/sudoers.d/99-gdb-nopasswd && sudo visudo -cf /etc/sudoers.d/99-gdb-nopasswd"
+            ],
+            "problemMatcher": []
+        },
+        {
+            // 只重编硬件相关的 3 个包;构建后必须重启硬件 launch 才会加载新 .so。
+            // 末尾顺手重新合并 compile_commands.json,保持 clangd 数据库最新。
+            "label": "build: ethercat debug (RelWithDebInfo)",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "-c",
+                "unset AMENT_PREFIX_PATH COLCON_PREFIX_PATH CMAKE_PREFIX_PATH ROS_PACKAGE_PATH PYTHONPATH LD_LIBRARY_PATH; source /opt/ros/foxy/setup.bash && cd /home/fit/cos_ws/elfin_ws && colcon build --packages-select elfin_ethercat_driver elfin_ros_control soem_ros2 --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_EXPORT_COMPILE_COMMANDS=ON && python3 -c \"import json,glob; m=[]; [m.extend(json.load(open(p))) for p in glob.glob('build/*/compile_commands.json')]; json.dump(m, open('build/compile_commands.json','w'), indent=1)\""
+            ],
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            // 真机硬件侧:ros2_control_node(EtherCAT 主站,需 root + 实时优先级)。
+            // 与 document/架构与数据流.md 的启动方式一致:chrt 10 + root。
+            "label": "hardware: elfin5_moveit (root, chrt 10)",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "-c",
+                "sudo chrt 10 bash -c 'source /opt/ros/foxy/setup.bash && source /home/fit/cos_ws/elfin_ws/install/setup.bash && exec ros2 launch elfin5_ros2_moveit2 elfin5_moveit.launch.py'"
+            ],
+            "problemMatcher": []
+        }
+    ]
+}
