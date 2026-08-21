@@ -6,6 +6,7 @@
 import os
 
 import xacro
+import yaml
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch_ros.actions import Node
@@ -30,6 +31,15 @@ def generate_launch_description():
     with open(srdf_file, 'r') as f:
         robot_description_semantic = {'robot_description_semantic': f.read()}
 
+    # robot_description_kinematics：IK 求解插件。
+    # 不加载则 MoveGroupInterface 报 "No kinematics plugins defined"，
+    # computeCartesianPath 无法工作，enable 后机械臂不动。
+    kinematics_file = os.path.join(
+        get_package_share_directory('elfin5_ros2_moveit2'),
+        'config', 'kinematics.yaml')
+    with open(kinematics_file, 'r') as f:
+        robot_description_kinematics = {'robot_description_kinematics': yaml.safe_load(f)}
+
     return LaunchDescription([
         Node(
             package='cos_shape',
@@ -39,6 +49,7 @@ def generate_launch_description():
             parameters=[
                 robot_description,
                 robot_description_semantic,
+                robot_description_kinematics,
                 {
                     'group_name': 'elfin_arm',
                     'ee_link': 'elfin_end_link',
