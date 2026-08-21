@@ -1,0 +1,6 @@
+# clangd 配置:指向 elfin_ws 合并后的编译数据库(compile_commands.json)
+# 由 elfin_ws/build/*/compile_commands.json 合并生成,覆盖全部 C++ 包
+# (elfin_basic_api / elfin_ethercat_driver / soem_ros2 / elfin_ros_control / cos_shape 等),
+# 这样 clangd 能自动解析出 rclcpp / moveit 等所有 include 路径与编译选项。
+CompileFlags:
+  CompilationDatabase: /home/fit/cos_ws/elfin_ws/build

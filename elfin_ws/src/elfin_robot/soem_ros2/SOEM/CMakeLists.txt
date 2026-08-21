@@ -24,9 +24,7 @@ if(WIN32)
   set(OS_LIBS wpcap.lib Packet.lib Ws2_32.lib Winmm.lib)
 elseif(UNIX AND NOT APPLE)
   set(OS "linux")
-  # gcc9 + fortify 会把 oshw.c 里 strncpy 的保守用法报成 stringop-overflow 错误，
-  # 上游代码不改，这里仅对 linux 构建去掉 -Werror（保留 -Wall -Wextra）。
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Werror")
   set(OS_LIBS pthread rt)
 elseif(APPLE)
   # This must come *before* linux or MacOSX will identify as Unix.

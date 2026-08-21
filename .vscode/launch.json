@@ -1,0 +1,63 @@
+{
+    // ROS2 节点 attach 调试配置。
+    // 前提 1: C++ 包已用 RelWithDebInfo 重编，如
+    //   colcon build --packages-select elfin_basic_api --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo
+    // 前提 2: gdb attach 需要放开 ptrace 限制（重启失效，仅调试期使用）：
+    //   echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope
+    // 原则：只 attach 应用层节点（gui / basic_api / move_group），
+    // 不 attach ros2_control_node 与 elfin_ethercat_driver（暂停会触发 EtherCAT 看门狗）。
+    "version": "0.2.0",
+    "configurations": [
+        {
+            // Python GUI: 需先用 ELFIN_GUI_DEBUG=1 启动 elfin_gui.py（脚本内 debugpy.listen(5678)）
+            // 未设该环境变量时脚本无任何调试开销，正常跑。
+            "name": "attach: elfin_gui (python)",
+            "type": "debugpy",
+            "request": "attach",
+            "connect": { "host": "127.0.0.1", "port": 5678 },
+            "pathMappings": [
+                {
+                    "localRoot": "${workspaceFolder}/elfin_ws/src/elfin_robot/elfin_basic_api/scripts",
+                    "remoteRoot": "/home/fit/cos_ws/elfin_ws/install/elfin_basic_api/lib/elfin_basic_api"
+                }
+            ],
+            "justMyCode": false
+        },
+        {
+            // F5 后弹出进程列表，输入 elfin_basic 过滤，回车即 attach
+            "name": "attach: elfin_basic_api (c++)",
+            "type": "cppdbg",
+            "request": "attach",
+            "program": "/home/fit/cos_ws/elfin_ws/install/elfin_basic_api/lib/elfin_basic_api/elfin_basic_api_node",
+            "processId": "${command:pickProcess}",
+            "MIMode": "gdb",
+            "setupCommands": [
+                { "text": "-enable-pretty-printing", "ignoreFailures": true },
+                { "text": "set pagination off" }
+            ]
+        },
+        {
+            "name": "attach: move_group (c++)",
+            "type": "cppdbg",
+            "request": "attach",
+            "program": "/opt/ros/foxy/lib/moveit_ros_move_group/move_group",
+            "processId": "${command:pickProcess}",
+            "MIMode": "gdb",
+            "setupCommands": [
+                { "text": "-enable-pretty-printing", "ignoreFailures": true },
+                { "text": "set pagination off" }
+            ]
+        }
+    ],
+    "compounds": [
+        {
+            // 一键同时 attach GUI 与 basic_api
+            "name": "attach: gui + basic_api",
+            "configurations": [
+                "attach: elfin_gui (python)",
+                "attach: elfin_basic_api (c++)"
+            ],
+            "stopAll": false
+        }
+    ]
+}
