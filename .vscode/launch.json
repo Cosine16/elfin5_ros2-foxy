@@ -1,13 +1,11 @@
 {
-    // ROS2 节点调试配置(以 attach 为主)。
-    // 前提 1: C++ 包已用 RelWithDebInfo 重编,如
+    // ROS2 节点 attach 调试配置。
+    // 前提 1: C++ 包已用 RelWithDebInfo 重编，如
     //   colcon build --packages-select elfin_basic_api --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo
-    // 前提 2: attach 普通用户进程需放开 ptrace 限制(重启失效,仅调试期使用):
+    // 前提 2: gdb attach 需要放开 ptrace 限制（重启失效，仅调试期使用）：
     //   echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope
-    // 前提 3: attach root 进程(ros2_control_node,由 sudo chrt 10 启动)需要
-    //   scripts/gdb_sudo.sh + 免密 sudo gdb,见 tasks.json "setup: allow sudo gdb (one-time)"。
-    // 注:EtherCAT 初始化跑不通时 ros2_control_node 的周期线程尚未运行,
-    //   此时 attach/暂停不会触发从站看门狗;初始化成功跑起来后再暂停硬件进程仍有风险。
+    // 原则：只 attach 应用层节点（gui / basic_api / move_group），
+    // 不 attach ros2_control_node 与 elfin_ethercat_driver（暂停会触发 EtherCAT 看门狗）。
     "version": "0.2.0",
     "configurations": [
         {
@@ -24,17 +22,6 @@
                 }
             ],
             "justMyCode": false
-        },
-        {
-            "name": "attach: elfin_driver",
-            "type":"cppdbg",
-            "request": "attach",
-            "connect": {"host": "127.0.0.1", "port": 5678 },
-            "pathMappings":
-            [{
-                "localRoot":"",
-                "remoteRoot":""
-            }]
         },
         {
             // F5 后弹出进程列表，输入 elfin_basic 过滤，回车即 attach
@@ -56,29 +43,6 @@
             "program": "/opt/ros/foxy/lib/moveit_ros_move_group/move_group",
             "processId": "${command:pickProcess}",
             "MIMode": "gdb",
-            "setupCommands": [
-                { "text": "-enable-pretty-printing", "ignoreFailures": true },
-                { "text": "set pagination off" }
-            ]
-        },
-        {
-            // 真机硬件层:直接 attach ros2_control_node(root 进程,经 scripts/gdb_sudo.sh 提权)。
-            // 前置(见 tasks.json):
-            //   1. (仅首次)任务 "setup: allow sudo gdb (one-time)"
-            //   2. 任务 "build: ethercat debug (RelWithDebInfo)" 并重启硬件
-            //   3. 任务 "hardware: elfin5_moveit (root, chrt 10)"
-            //   4. 本配置按 F5,进程列表输入 ros2_control 过滤,回车即 attach
-            // 断点:elfin_ethercat_driver/src/elfin_ethercat_manager.cpp:362
-            //   即 "Failed to read from ret:0, slave_no:5, index:0x7001" 的打印点;
-            //   readSDO 是模板函数,按 file:line 下断可命中所有实例化。
-            "name": "attach: ros2_control_node (c++, root)",
-            "type": "cppdbg",
-            "request": "attach",
-            "program": "/opt/ros/foxy/lib/controller_manager/ros2_control_node",
-            "processId": "${command:pickProcess}",
-            "MIMode": "gdb",
-            "miDebuggerPath": "/home/fit/cos_ws/scripts/gdb_sudo.sh",
-            "additionalSOLibSearchPath": "/home/fit/cos_ws/elfin_ws/install/elfin_ros_control/lib/elfin_ros_control;/home/fit/cos_ws/elfin_ws/build/elfin_ethercat_driver;/home/fit/cos_ws/elfin_ws/install/elfin_robot_msgs/lib",
             "setupCommands": [
                 { "text": "-enable-pretty-printing", "ignoreFailures": true },
                 { "text": "set pagination off" }
