@@ -8,7 +8,7 @@ start_sim.py
     1. source ~/cos_ws/elfin_ws/install/setup.bash
     2. sudo + ros2 launch <仿真命令>
 
-支持机型(前缀): elfin3 / elfin5 / elfin5_l / elfin10 / elfin10_l / elfin15
+支持机型(前缀): elfin5 (其余机型的 moveit2/gazebo 包已移除)
 
 用法:
     python3 start_sim.py                      # 默认: 启动 Elfin5 仿真, 使用 sudo
@@ -39,34 +39,9 @@ SETUP_SCRIPT = os.path.join(CATKIN_WS, "install", "setup.bash")
 # 键为机型前缀, 值为 (终端标题, "ros2 launch 后面的参数") 列表。
 # 内容来自 README_cn.md 的 "使用仿真模型" 章节。
 SIM_COMMANDS = {
-    "elfin3": [
-        ("Gazebo + MoveIt (RViz)", "elfin3_ros2_moveit2 elfin3.launch.py"),
-        ("后台程序 basic_api", "elfin3_ros2_moveit2 elfin3_basic_api.launch.py"),
-        ("Elfin Control Panel GUI", "elfin_basic_api fake_elfin_gui.launch.py"),
-    ],
     "elfin5": [
         ("Gazebo + MoveIt (RViz)", "elfin5_ros2_moveit2 elfin5.launch.py"),
         ("后台程序 basic_api", "elfin5_ros2_moveit2 elfin5_basic_api.launch.py"),
-        ("Elfin Control Panel GUI", "elfin_basic_api fake_elfin_gui.launch.py"),
-    ],
-    "elfin5_l": [
-        ("Gazebo + MoveIt (RViz)", "elfin5_l_ros2_moveit2 elfin5_l.launch.py"),
-        ("后台程序 basic_api", "elfin5_l_ros2_moveit2 elfin5_l_basic_api.launch.py"),
-        ("Elfin Control Panel GUI", "elfin_basic_api fake_elfin_gui.launch.py"),
-    ],
-    "elfin10": [
-        ("Gazebo + MoveIt (RViz)", "elfin10_ros2_moveit2 elfin10.launch.py"),
-        ("后台程序 basic_api", "elfin10_ros2_moveit2 elfin10_basic_api.launch.py"),
-        ("Elfin Control Panel GUI", "elfin_basic_api fake_elfin_gui.launch.py"),
-    ],
-    "elfin10_l": [
-        ("Gazebo + MoveIt (RViz)", "elfin10_l_ros2_moveit2 elfin10_l.launch.py"),
-        ("后台程序 basic_api", "elfin10_l_ros2_moveit2 elfin10_l_basic_api.launch.py"),
-        ("Elfin Control Panel GUI", "elfin_basic_api fake_elfin_gui.launch.py"),
-    ],
-    "elfin15": [
-        ("Gazebo + MoveIt (RViz)", "elfin15_ros2_moveit2 elfin15.launch.py"),
-        ("后台程序 basic_api", "elfin15_ros2_moveit2 elfin15_basic_api.launch.py"),
         ("Elfin Control Panel GUI", "elfin_basic_api fake_elfin_gui.launch.py"),
     ],
 }
