@@ -23,6 +23,9 @@ dist/
 
 # ---- VS Code（根级；子项目各自决定是否跟踪）----
 .vscode/*
-!.vscode/settings.json
 !.vscode/launch.json
 !.vscode/tasks.json
+.clangd
+
+# 本地机器覆盖(不进版本库)
+elfin_ws/src/elfin_robot/elfin_robot_bringup/config/elfin_drivers.local.yaml

@@ -19,5 +19,5 @@ source /opt/ros/foxy/setup.bash
 cd "$WS"
 
 echo "=== 开始构建: $(date) ==="
-colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release
+colcon build --continue-on-error --cmake-args -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 echo "=== 构建结束: $(date) exit=$? ==="
