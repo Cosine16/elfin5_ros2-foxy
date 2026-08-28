@@ -17,9 +17,9 @@ start_real.py
     4. Elfin Control Panel:   ros2 launch elfin_basic_api elfin_gui.launch.py
 
 用法:
-    python3 start_real.py                    # 默认: Elfin5 实机, 使用 sudo
+    python3 start_real.py                    # 默认: Elfin5 实机, 用户态运行(推荐)
     python3 start_real.py --elfin elfin5     # 启动 Elfin5 实机
-    python3 start_real.py --no-sudo          # 不使用 sudo
+    python3 start_real.py --sudo             # 旧行为: 全部终端以 root 运行
     python3 start_real.py --no-wait          # 不做依赖等待, 直接启动各终端
     python3 start_real.py --wait-timeout 180 # 设置依赖等待超时(秒), 默认 120
     python3 start_real.py --check            # 只检查环境是否就绪, 不启动终端
@@ -38,11 +38,16 @@ start_real.py
       elfin_ethernet_name 与实际连接 Elfin 的网卡名称一致。
     - 把购买时得到的 elfin_drivers.yaml 放到 elfin_robot_bringup/config/ 下,
       并把参数复制到 elfin_arm_control.yaml 的 ros__parameters 下。
-    - 使用 sudo 时每个终端会提示输入密码, 请在对应终端中手动输入。
+    - 默认用户态运行: 硬件终端经 `sudo capsh` 以普通用户身份持有
+      cap_net_raw/cap_sys_nice (ambient capabilities)。全图同用户,
+      可避免 root 节点的 DDS 共享内存段(0644)挡住普通用户终端。
+      若环境异常可用 --sudo 回退旧行为(全部终端 root)。
+    - 使用 capsh/--sudo 时硬件终端会提示输入密码, 请在该终端中手动输入。
     - 关闭机械臂电源前, 请先在 Elfin Control Panel 界面按 "Servo Off" 去使能。
 """
 
 import argparse
+import getpass
 import os
 import shlex
 import shutil
@@ -78,37 +83,37 @@ WAIT_SPECS = [
 # (README 中 elfin3_ros2_moveit / elfin_ros2_moveit2 为笔误, 实际包名统一为 <model>_ros2_moveit2)。
 REAL_COMMANDS = {
     "elfin3": [
-        ("硬件驱动 (实时优先级)", "elfin3_ros2_moveit2 elfin3_moveit.launch.py", True),
+        ("硬件驱动 (EtherCAT, capsh 用户态)", "elfin3_ros2_moveit2 elfin3_moveit.launch.py", True),
         ("MoveIt! + RViz", "elfin3_ros2_moveit2 elfin3_moveit_rviz.launch.py", False),
         ("后台程序 basic_api", "elfin3_ros2_moveit2 elfin3_basic_api.launch.py", False),
         ("Elfin Control Panel", "elfin_basic_api elfin_gui.launch.py", False),
     ],
     "elfin5": [
-        ("硬件驱动 (实时优先级)", "elfin5_ros2_moveit2 elfin5_moveit.launch.py", True),
+        ("硬件驱动 (EtherCAT, capsh 用户态)", "elfin5_ros2_moveit2 elfin5_moveit.launch.py", True),
         ("MoveIt! + RViz", "elfin5_ros2_moveit2 elfin5_moveit_rviz.launch.py", False),
         ("后台程序 basic_api", "elfin5_ros2_moveit2 elfin5_basic_api.launch.py", False),
         ("Elfin Control Panel", "elfin_basic_api elfin_gui.launch.py", False),
     ],
     "elfin5_l": [
-        ("硬件驱动 (实时优先级)", "elfin5_l_ros2_moveit2 elfin5_l_moveit.launch.py", True),
+        ("硬件驱动 (EtherCAT, capsh 用户态)", "elfin5_l_ros2_moveit2 elfin5_l_moveit.launch.py", True),
         ("MoveIt! + RViz", "elfin5_l_ros2_moveit2 elfin5_l_moveit_rviz.launch.py", False),
         ("后台程序 basic_api", "elfin5_l_ros2_moveit2 elfin5_l_basic_api.launch.py", False),
         ("Elfin Control Panel", "elfin_basic_api elfin_gui.launch.py", False),
     ],
     "elfin10": [
-        ("硬件驱动 (实时优先级)", "elfin10_ros2_moveit2 elfin10_moveit.launch.py", True),
+        ("硬件驱动 (EtherCAT, capsh 用户态)", "elfin10_ros2_moveit2 elfin10_moveit.launch.py", True),
         ("MoveIt! + RViz", "elfin10_ros2_moveit2 elfin10_moveit_rviz.launch.py", False),
         ("后台程序 basic_api", "elfin10_ros2_moveit2 elfin10_basic_api.launch.py", False),
         ("Elfin Control Panel", "elfin_basic_api elfin_gui.launch.py", False),
     ],
     "elfin10_l": [
-        ("硬件驱动 (实时优先级)", "elfin10_l_ros2_moveit2 elfin10_l_moveit.launch.py", True),
+        ("硬件驱动 (EtherCAT, capsh 用户态)", "elfin10_l_ros2_moveit2 elfin10_l_moveit.launch.py", True),
         ("MoveIt! + RViz", "elfin10_l_ros2_moveit2 elfin10_l_moveit_rviz.launch.py", False),
         ("后台程序 basic_api", "elfin10_l_ros2_moveit2 elfin10_l_basic_api.launch.py", False),
         ("Elfin Control Panel", "elfin_basic_api elfin_gui.launch.py", False),
     ],
     "elfin15": [
-        ("硬件驱动 (实时优先级)", "elfin15_ros2_moveit2 elfin15_moveit.launch.py", True),
+        ("硬件驱动 (EtherCAT, capsh 用户态)", "elfin15_ros2_moveit2 elfin15_moveit.launch.py", True),
         ("MoveIt! + RViz", "elfin15_ros2_moveit2 elfin15_moveit_rviz.launch.py", False),
         ("后台程序 basic_api", "elfin15_ros2_moveit2 elfin15_basic_api.launch.py", False),
         ("Elfin Control Panel", "elfin_basic_api elfin_gui.launch.py", False),
@@ -148,17 +153,34 @@ def build_launch_command(launch_args, is_hardware, use_sudo,
                          wait_spec=None, wait_timeout=120, no_wait=False):
     """构建执行 ros2 launch 的命令。
 
-    - 硬件驱动终端使用 `sudo chrt 10 bash -c ...` (实时优先级 + root 环境)
-    - 其他终端使用 `sudo -E bash -c ...` (-E 保留 DISPLAY 等, 便于 root 启动 GUI)
-    - 不使用 sudo 时直接运行
+    默认（use_sudo=False）:
+    - 硬件驱动终端: `sudo capsh --keep=1 --user=<当前用户> --inh/addamb
+      cap_net_raw,cap_sys_nice` —— 进程仍以普通用户身份运行，但带
+      EtherCAT 裸套接字与实时调度所需 capability。全图同用户，
+      避免 root 节点的 Fast DDS 共享内存段(/dev/shm/fastrtps_* 0644)
+      挡住普通用户终端（跨用户发现/通信静默失败）。
+      注意不能像 setcap 二进制那样授权: 带 file caps 的进程会被 glibc
+      置于 secure-execution 模式并清除 LD_LIBRARY_PATH, Foxy 的
+      rcpputils::find_library_path 依赖该变量, rmw 会加载失败。
+    - 其他终端: 直接以当前用户运行。
+    use_sudo=True (--sudo): 旧行为，全部以 root 运行
+    （硬件终端 `sudo chrt 10`，其余 `sudo -E`）。
     - 若配置了 wait_spec, 会在 launch 前等待依赖服务/节点就绪
     """
     payload = build_payload(launch_args, wait_spec, wait_timeout, no_wait)
-    if not use_sudo:
-        return payload
+    if use_sudo:
+        if is_hardware:
+            return "sudo chrt 10 bash -c {}".format(shlex.quote(payload))
+        return "sudo -E bash -c {}".format(shlex.quote(payload))
     if is_hardware:
-        return "sudo chrt 10 bash -c {}".format(shlex.quote(payload))
-    return "sudo -E bash -c {}".format(shlex.quote(payload))
+        user = getpass.getuser()
+        home = os.path.expanduser("~")
+        inner = "export HOME={}; {}".format(shlex.quote(home), payload)
+        return ("sudo capsh --keep=1 --user={} "
+                "--inh=cap_net_raw,cap_sys_nice "
+                "--addamb=cap_net_raw,cap_sys_nice -- -c {}").format(
+                    shlex.quote(user), shlex.quote(inner))
+    return payload
 
 
 def build_terminal_command(launch_args, is_hardware, use_sudo,
@@ -261,6 +283,15 @@ def check_environment(verbose=True):
         print("[!!] 当前内核 {} 可能不是实时内核(PREEMPT_RT), "
               "实机控制需要实时性支持".format(release))
 
+    # 5. capsh 可用 (硬件终端用户态授权 cap_net_raw/cap_sys_nice 的工具)
+    if shutil.which("capsh"):
+        if verbose:
+            print("[OK] capsh 可用 (硬件终端将以普通用户 + ambient capabilities 运行)")
+    else:
+        ok = False
+        print("[!!] 未找到 capsh (sudo apt install libcap2-bin), "
+              "或改用 --sudo 回退全 root 模式")
+
     return ok
 
 
@@ -314,8 +345,10 @@ def main():
     parser.add_argument("--elfin", default="elfin5",
                         choices=list(REAL_COMMANDS.keys()),
                         help="机器人机型前缀, 默认 elfin5")
-    parser.add_argument("--no-sudo", action="store_true",
-                        help="不使用 sudo 执行实机命令")
+    parser.add_argument("--sudo", action="store_true",
+                        help="以 root 执行实机命令（旧行为）。默认不需要："
+                             "ros2_control_node 已授予 cap_net_raw/cap_sys_nice，"
+                             "全用户态运行可避免 root↔普通用户 DDS 共享内存段权限问题")
     parser.add_argument("--check", action="store_true",
                         help="只检查环境是否就绪, 不启动终端")
     parser.add_argument("--list", action="store_true",
@@ -338,7 +371,7 @@ def main():
     print("Elfin 实机启动器")
     print("工作空间: {}".format(CATKIN_WS))
     print("机型    : {}".format(args.elfin))
-    print("使用sudo: {}".format("是" if not args.no_sudo else "否"))
+    print("使用sudo: {}".format("是" if args.sudo else "否"))
     print("=" * 70)
 
     # 环境检查
@@ -351,7 +384,7 @@ def main():
         sys.exit(0 if env_ok else 1)
 
     # 打印 / 启动命令 (严格按 1→2→3→4 顺序, 每步等待上一步就绪)
-    use_sudo = not args.no_sudo
+    use_sudo = args.sudo
     commands = REAL_COMMANDS[args.elfin]
     wait_mode = "关(不等待)" if args.no_wait else "开(超时 {}s)".format(args.wait_timeout)
     print("\n依赖等待: {}".format(wait_mode))
@@ -375,7 +408,7 @@ def main():
     if args.list:
         print("以上为将要执行的命令 (--list 模式, 未启动终端)。")
     else:
-        print("所有终端已启动。若使用 sudo, 请在对应终端中手动输入密码。")
+        print("所有终端已启动。默认用户态运行, 无需输入密码; --sudo 模式才需要。")
         print("各终端会按 1→2→3→4 的依赖顺序自行等待就绪后再启动。")
         print("启动完成后: 在 Elfin Control Panel 界面先按 'Clear Fault' 清错, "
               "再按 'Servo On' 使能。")
