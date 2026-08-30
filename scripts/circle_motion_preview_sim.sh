@@ -41,6 +41,10 @@ if [ "${1:-}" = "stop" ]; then
   exit 0
 fi
 
+if [ -n "${WSL_DISTRO_NAME:-}" ] && [ -z "${DISPLAY:-}" ] && [ -z "${WAYLAND_DISPLAY:-}" ]; then
+  echo "[preview-sim] 检测到 WSL 环境且未配置 GUI 显示，脚本将改为后台模式运行。"
+fi
+
 if ! pgrep -f "ros2 launch elfin5_ros2_moveit2.*elfin5.launch.py" >/dev/null 2>&1; then
   echo "[preview-sim] 启动 elfin5 仿真（MoveIt2 + RViz）..."
   bash "$SCRIPT_DIR/start_sim.sh" moveit2

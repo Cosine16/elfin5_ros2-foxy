@@ -40,6 +40,11 @@ if [ "${1:-}" = "--check" ]; then
   exec python3 "$SCRIPT_DIR/start_real.py" --check
 fi
 
+if [ -n "${WSL_DISTRO_NAME:-}" ] && [ -z "${DISPLAY:-}" ] && [ -z "${WAYLAND_DISPLAY:-}" ]; then
+  echo "[preview-real] 检测到 WSL 环境但无 GUI 显示，真实机脚本需要在带 X11/WSLg 的环境中运行。"
+  exit 1
+fi
+
 echo "[preview-real] 启动实机终端（硬件驱动 → MoveIt2 + RViz → basic_api → 面板）..."
 python3 "$SCRIPT_DIR/start_real.py" "$@"
 

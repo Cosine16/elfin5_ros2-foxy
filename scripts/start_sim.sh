@@ -44,10 +44,18 @@ need_setup() {
 
 # 选择一个可用的系统终端模拟器；没有则返回非 0（调用方走后台模式）
 detect_terminal() {
-  for t in gnome-terminal x-terminal-emulator xfce4-terminal konsole; do
+  for t in gnome-terminal x-terminal-emulator xfce4-terminal konsole xterm; do
     command -v "$t" >/dev/null 2>&1 && { echo "$t"; return 0; }
   done
   return 1
+}
+
+# 在 WSL / 无 X11 环境下，GUI 终端可能不可用，退回到后台模式。
+check_gui_env() {
+  if [ -n "${WSL_DISTRO_NAME:-}" ] && [ -z "${DISPLAY:-}" ] && [ -z "${WAYLAND_DISPLAY:-}" ]; then
+    return 1
+  fi
+  return 0
 }
 
 # 在新终端窗口运行一个 ros2 launch（失败时窗口停留 5 秒便于查看错误）
@@ -73,6 +81,9 @@ open_term() {
       ;;
     konsole)
       konsole --title "$name" -e bash -c "$inner" &
+      ;;
+    xterm)
+      xterm -title "$name" -e bash -c "$inner" &
       ;;
   esac
   echo "已打开终端窗口: $name"
@@ -105,8 +116,12 @@ stop_all() {
 }
 
 TERM_CMD="$(detect_terminal)" || TERM_CMD=""
+if [ -n "$TERM_CMD" ] && ! check_gui_env; then
+  echo "检测到 WSL / 无图形显示环境：未检测到 DISPLAY 或 WAYLAND_DISPLAY，回退到后台模式。"
+  TERM_CMD=""
+fi
 if [ -z "$TERM_CMD" ]; then
-  echo "提示: 未找到图形终端模拟器，使用后台进程模式（日志在 $LOG_DIR/）"
+  echo "提示: 未找到可用图形终端模拟器或当前环境无 GUI，使用后台进程模式（日志在 $LOG_DIR/）"
 fi
 
 case "${1:-}" in
