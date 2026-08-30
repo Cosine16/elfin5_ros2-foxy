@@ -18,6 +18,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(moveit_core REQUIRED)
 find_package(moveit_ros_planning_interface REQUIRED)
+find_package(moveit_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(trajectory_msgs REQUIRED)
@@ -27,12 +28,24 @@ ament_target_dependencies(circle_motion
   rclcpp
   moveit_core
   moveit_ros_planning_interface
+  moveit_msgs
   geometry_msgs
   std_msgs
   trajectory_msgs
 )
 
-install(TARGETS circle_motion
+add_executable(circle_motion_preview src/circle_motion_preview_node.cpp)
+ament_target_dependencies(circle_motion_preview
+  rclcpp
+  moveit_core
+  moveit_ros_planning_interface
+  moveit_msgs
+  geometry_msgs
+  std_msgs
+  trajectory_msgs
+)
+
+install(TARGETS circle_motion circle_motion_preview
   DESTINATION lib/${PROJECT_NAME})
 
 install(PROGRAMS scripts/circle_panel.py scripts/api_demo.py

@@ -21,6 +21,9 @@ dist/
 *.swo
 *~
 
+# ---- 本机专用配置 ----
+*.local.yaml
+
 # ---- VS Code（根级；子项目各自决定是否跟踪）----
 .vscode/*
 !.vscode/settings.json

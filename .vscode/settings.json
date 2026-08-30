@@ -6,9 +6,21 @@
     "python.analysis.extraPaths": [
         "/opt/ros/foxy/lib/python3.8/site-packages"
     ],
-    "C_Cpp.intelliSenseEngine": "default",
-    "C_Cpp.intelliSenseEngineFallback": "enabled",
-    "C_Cpp.errorSquiggles": "enabled",
-    "cmake.sourceDirectory": "/home/fit/cos_ws/elfin_ws/src/cos_shape",
-    "C_Cpp.default.compilerPath": "/usr/bin/g++"
+    "cmake.sourceDirectory": "${workspaceFolder}/elfin_ws/src/cos_shape",
+    "C_Cpp.intelliSenseEngine": "disabled",
+    "clangd.arguments": [
+        "--background-index",
+        "--header-insertion=never",
+        "--query-driver=/usr/bin/c++"
+    ],
+    "files.associations": {
+        ".clangd": "yaml"
+    },
+    "python-envs.pythonProjects": [
+        {
+            "path": ".",
+            "envManager": "ms-python.python:system",
+            "packageManager": "ms-python.python:pip"
+        }
+    ]
 }

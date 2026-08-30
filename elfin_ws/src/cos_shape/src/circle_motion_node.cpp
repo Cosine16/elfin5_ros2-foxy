@@ -1,40 +1,52 @@
-// circle_motion_node.cpp
-// =====================================================================
-// 让机械臂末端围绕某个三维点做圆周运动（cos_shape 包）。
-//
-// 圆周参数：
-//   - center       : 圆心（规划坐标系下的三维点）
-//   - radius       : 半径 [m]
-//   - inclination  : 圆平面倾角 [rad]，圆平面法线与基座 Z 轴的夹角
-//                    （0 = 水平圆，pi/2 = 竖直圆）
-//   - azimuth      : 倾角旋转方位 [rad]，绕 Z 轴
-//   - speed        : 角速度 [rad/s]（speed_mode=angular）
-//                    或线速度 [m/s]（speed_mode=linear）
-//
-// Topic 接口（均在节点命名空间 ~/ 下）：
-//   订阅 ~/set_angular_velocity (std_msgs/Float64)  rad/s，同时切换到角速度模式
-//   订阅 ~/set_linear_velocity  (std_msgs/Float64)  m/s，  同时切换到线速度模式
-//   订阅 ~/set_center           (geometry_msgs/Point) 圆心，下一圈生效
-//   订阅 ~/set_inclination      (std_msgs/Float64)  倾角 rad，下一圈生效
-//   订阅 ~/set_azimuth          (std_msgs/Float64)  方位角 rad，下一圈生效
-//   订阅 ~/set_radius           (std_msgs/Float64)  半径 m，下一圈生效
-//   订阅 ~/enable               (std_msgs/Bool)     true 开始 / false 停止
-//   发布 ~/state                (std_msgs/String)   每圈结束发布一次状态摘要
-//
-// 末端姿态：运动期间保持开始时刻的姿态不变。
-// 速度通过时间参数化保证：先 computeCartesianPath 生成关节轨迹，
-// 再用 IterativeParabolicTimeParameterization 加时间戳，最后整体
-// 缩放到目标周期 T = 2*pi/omega（或 T = 2*pi*r/v）。
-// =====================================================================
+/**
+ * @file circle_motion_node.cpp
+ * @brief 控制 Elfin5 机械臂末端沿指定三维圆轨迹运动。
+ *
+ * 圆轨迹由圆心、半径、平面倾角和方位角确定。节点首先使用
+ * MoveIt Cartesian Path 生成一圈的笛卡尔路径，再进行时间参数化，
+ * 从而支持角速度模式和线速度模式。
+ *
+ * 末端姿态在运动期间保持开始执行时的姿态不变。运行期间通过 Topic
+ * 修改的圆轨迹参数在下一圈规划时生效。
+ *
+ * @par Parameters
+ * - `group_name`：MoveIt 规划组名称。
+ * - `ee_link`：末端执行器连杆名称。
+ * - `center`：规划坐标系中的圆心 `[x, y, z]`，单位为 m。
+ * - `radius`：圆半径，单位为 m。
+ * - `angular_velocity`：角速度，单位为 rad/s。
+ * - `linear_velocity`：线速度，单位为 m/s。
+ * - `speed_mode`：速度模式，取 `angular` 或 `linear`。
+ * - `inclination`：圆平面法线相对基座 Z 轴的倾角，单位为 rad。
+ * - `azimuth`：圆平面法线绕基座 Z 轴的方位角，单位为 rad。
+ * - `waypoints_per_rev`：每圈笛卡尔路径点数量。
+ * - `revolutions`：执行圈数，`-1` 表示无限执行。
+ * - `eef_step`：笛卡尔路径插值步长，单位为 m。
+ * - `autostart`：是否在节点启动后立即执行。
+ *
+ * @par ROS interfaces
+ * 所有相对名称均位于节点私有命名空间 `~/` 下：
+ * - `~/set_angular_velocity` (`std_msgs/msg/Float64`)：设置角速度并切换模式。
+ * - `~/set_linear_velocity` (`std_msgs/msg/Float64`)：设置线速度并切换模式。
+ * - `~/set_center` (`geometry_msgs/msg/Point`)：设置圆心。
+ * - `~/set_inclination` (`std_msgs/msg/Float64`)：设置平面倾角。
+ * - `~/set_azimuth` (`std_msgs/msg/Float64`)：设置平面方位角。
+ * - `~/set_radius` (`std_msgs/msg/Float64`)：设置圆半径。
+ * - `~/enable` (`std_msgs/msg/Bool`)：`true` 开始，`false` 停止。
+ * - `~/state` (`std_msgs/msg/String`)：每圈结束发布一次状态摘要。
+ */
 
 #include <array>
 #include <atomic>
 #include <chrono>
 #include <cmath>
+#include <cstdint>
+#include <cstdio>
 #include <future>
 #include <memory>
 #include <mutex>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include <rclcpp/rclcpp.hpp>
@@ -55,23 +67,30 @@ constexpr double kTwoPi = 6.283185307179586;
 
 using Vec3 = std::array<double, 3>;
 
+/** @brief 计算两个三维向量的叉积。 */
 Vec3 cross(const Vec3& a, const Vec3& b)
 {
   return { a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0] };
 }
 
+/** @brief 返回三维向量的欧几里得范数。 */
 double norm(const Vec3& v)
 {
   return std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
 }
 
+/** @brief 将三维向量归一化。 */
 Vec3 normalize(const Vec3& v)
 {
   const double n = norm(v);
   return { v[0] / n, v[1] / n, v[2] / n };
 }
 
-// 把时间戳整体缩放 k 倍；速度、加速度同步缩放保持轨迹一致
+/**
+ * @brief 按比例缩放关节轨迹的时间戳、速度和加速度。
+ * @param jt 待缩放的关节轨迹。
+ * @param k 时间缩放系数；大于 1 表示减速，小于 1 表示加速。
+ */
 void scaleTrajectoryTime(trajectory_msgs::msg::JointTrajectory& jt, double k)
 {
   for (auto& p : jt.points)
@@ -88,9 +107,18 @@ void scaleTrajectoryTime(trajectory_msgs::msg::JointTrajectory& jt, double k)
 }
 }  // namespace
 
+/**
+ * @brief Elfin5 圆周运动 ROS 2 节点。
+ *
+ * 节点回调只更新受互斥锁保护的运行参数；实际规划和执行在
+ * `run()` 中进行，以避免多个回调线程同时访问 MoveGroupInterface。
+ */
 class CircleMotion : public rclcpp::Node
 {
 public:
+  /**
+   * @brief 创建节点、声明参数并初始化 ROS Topic 接口。
+   */
   CircleMotion() : Node("circle_motion")
   {
     // ---- 参数（可被 launch / --ros-args -p 覆盖）----
@@ -169,6 +197,11 @@ public:
     enabled_.store(autostart_);
   }
 
+  /**
+   * @brief 初始化 MoveIt 接口并执行圆周运动主循环。
+   *
+   * 该函数会阻塞，直到 ROS 关闭或节点完成/停止当前运动任务。
+   */
   void run()
   {
     moveit::planning_interface::MoveGroupInterface mgi(shared_from_this(), group_name_);
@@ -274,23 +307,32 @@ public:
 private:
   struct Config
   {
-    std::vector<double> center;
-    double radius;
-    double angular_velocity;
-    double linear_velocity;
-    std::string speed_mode;
-    double inclination;
-    double azimuth;
+    std::vector<double> center;       ///< 圆心坐标 `[x, y, z]`，单位为 m。
+    double radius;                    ///< 圆半径，单位为 m。
+    double angular_velocity;          ///< 角速度，单位为 rad/s。
+    double linear_velocity;           ///< 线速度，单位为 m/s。
+    std::string speed_mode;           ///< 速度模式：`angular` 或 `linear`。
+    double inclination;               ///< 圆平面法线倾角，单位为 rad。
+    double azimuth;                   ///< 圆平面法线方位角，单位为 rad。
   };
 
+  /** @brief 获取当前运行参数的一致快照。 */
   Config snapshot()
   {
     std::lock_guard<std::mutex> lk(mtx_);
     return cfg_;
   }
 
-  // 圆平面法线 n：Z 轴按 (azimuth, inclination) 旋转
-  // 平面内正交轴 u（全局 X 在平面内的投影，退化时改用 Y）、v = n × u
+  /**
+   * @brief 计算圆轨迹上指定相位角对应的笛卡尔点。
+   *
+   * 圆平面法线由 `inclination` 和 `azimuth` 决定。平面内的第一个
+   * 基向量取全局 X 轴的投影；当该投影接近退化时改用全局 Y 轴。
+   *
+   * @param cfg 当前圆轨迹参数。
+   * @param theta 圆周相位角，单位为 rad。
+   * @return 规划坐标系中的圆周点，单位为 m。
+   */
   Vec3 circlePoint(const Config& cfg, double theta) const
   {
     const Vec3 n = { std::sin(cfg.inclination) * std::cos(cfg.azimuth),
@@ -308,9 +350,19 @@ private:
              cfg.center[2] + cfg.radius * (std::cos(theta) * u[2] + std::sin(theta) * v[2]) };
   }
 
-  double planOneRevolution(moveit::planning_interface::MoveGroupInterface& mgi, const Config& cfg,
-                           const geometry_msgs::msg::Quaternion& orientation,
-                           moveit_msgs::msg::RobotTrajectory& traj)
+  /**
+   * @brief 规划一整圈保持姿态不变的笛卡尔路径。
+   *
+   * @param mgi MoveIt 规划组接口。
+   * @param cfg 当前圆轨迹参数。
+   * @param orientation 圆周运动期间保持不变的末端姿态。
+   * @param traj 输出的关节轨迹。
+   * @return 笛卡尔路径覆盖率，范围通常为 `[0, 1]`。
+   */
+  double planOneRevolution(
+    moveit::planning_interface::MoveGroupInterface& mgi, const Config& cfg,
+    const geometry_msgs::msg::Quaternion& orientation,
+    moveit_msgs::msg::RobotTrajectory& traj)
   {
     std::vector<geometry_msgs::msg::Pose> waypoints;
     waypoints.reserve(waypoints_per_rev_);
@@ -328,8 +380,20 @@ private:
     return mgi.computeCartesianPath(waypoints, eef_step_, 0.0 /*jump_threshold 禁用*/, traj);
   }
 
-  bool retimeToPeriod(moveit::planning_interface::MoveGroupInterface& mgi, const Config& cfg,
-                      moveit_msgs::msg::RobotTrajectory& traj)
+  /**
+   * @brief 为轨迹添加时间戳，并缩放到目标圆周周期。
+   *
+   * 目标周期为角速度模式下的 $T = 2\pi / \omega$，或线速度模式下的
+   * $T = 2\pi r / v$。最终速度仍受关节和控制器限制。
+   *
+   * @param mgi MoveIt 规划组接口。
+   * @param cfg 当前圆轨迹参数。
+   * @param traj 待重新时间参数化的轨迹，同时作为输出轨迹。
+   * @return `true` 表示时间参数化成功，否则返回 `false`。
+   */
+  bool retimeToPeriod(
+    moveit::planning_interface::MoveGroupInterface& mgi, const Config& cfg,
+    moveit_msgs::msg::RobotTrajectory& traj)
   {
     // 目标周期
     double period;
@@ -378,6 +442,11 @@ private:
     return true;
   }
 
+  /**
+   * @brief 发布一圈完成后的状态摘要。
+   * @param cfg 本圈实际使用的圆轨迹参数。
+   * @param rev 已完成的圈数。
+   */
   void publishState(const Config& cfg, int rev)
   {
     std_msgs::msg::String msg;
