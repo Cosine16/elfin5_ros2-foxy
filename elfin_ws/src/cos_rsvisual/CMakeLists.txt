@@ -30,10 +30,11 @@ find_package(moveit_msgs REQUIRED)
 find_package(moveit_ros_planning_interface REQUIRED)
 find_package(OpenCV REQUIRED)
 
-# 四个组件编译为同一个 SHARED 库
+# 五个组件编译为同一个 SHARED 库
 add_library(cos_rsvisual_components SHARED
   src/person_depth_detector.cpp
   src/person_visual_detector.cpp
+  src/face_visual_detector.cpp
   src/arm_follower.cpp
   src/obstacle_updater.cpp
 )
@@ -57,6 +58,7 @@ target_link_libraries(cos_rsvisual_components ${OpenCV_LIBS})
 # foxy 写法:每个 rclcpp_components_register_nodes 只注册一个类
 rclcpp_components_register_nodes(cos_rsvisual_components "cos_rsvisual::PersonDepthDetector")
 rclcpp_components_register_nodes(cos_rsvisual_components "cos_rsvisual::PersonVisualDetector")
+rclcpp_components_register_nodes(cos_rsvisual_components "cos_rsvisual::FaceVisualDetector")
 rclcpp_components_register_nodes(cos_rsvisual_components "cos_rsvisual::ArmFollower")
 rclcpp_components_register_nodes(cos_rsvisual_components "cos_rsvisual::ObstacleUpdater")
 

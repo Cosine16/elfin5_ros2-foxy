@@ -16,12 +16,15 @@ RealSense D435i 视觉感知 + Elfin5 视觉跟随包(眼在手上 / eye-in-hand
   /dev/shm 残留导致发现/订阅静默失效), 由 launch 自动注入。
 - **config/sensors_3d.yaml**: octomap 点云配置。【Foxy 下不生效】—— foxy 的
   MoveIt deb 没有编译 PointCloudOctomapUpdater 插件, 保留供升级 Humble+ 后启用。
-- **src/**: 四个 rclcpp 组件(编译为单一 SHARED 库 `cos_rsvisual_components`,
-  同容器零拷贝传递 /person_pose):
+- **src/**: 五个 rclcpp 组件(编译为单一 SHARED 库 `cos_rsvisual_components`,
+  同容器零拷贝传递 /person_pose 与 /face_pose):
   - `PersonDepthDetector`: 深度图距离带分割 → 最大连通域 → 反投影 → `/person_pose`
   - `PersonVisualDetector`: HOG 人形检测(备选, 默认不加载, 与深度检测器互斥)
-  - `ArmFollower`: 订阅 `/person_pose`, 保持末端位置不变、转动姿态使
-    `elfin_end_link` +Z 轴(相机方向)对准人; 内置 MoveGroupInterface 直接对
+  - `FaceVisualDetector`: Haar 人脸检测(彩色图) + 对齐深度取距 → `/face_pose`,
+    面向真机实相机(仿真 actor 纹理不满足 Haar 特征), 另发 `/face_debug_image` 调试图
+  - `ArmFollower`: 订阅 `/person_pose`(真机人脸跟随实例名为 `face_follower`,
+    改订 `/face_pose`), 保持末端位置不变、转动姿态使
+    `elfin_end_link` +Z 轴(相机方向)对准目标; 内置 MoveGroupInterface 直接对
     move_group 规划执行(不经过 elfin_basic_api, 原因见 architecture.md §5.2)
   - `ObstacleUpdater`: 把 `/person_pose` 作为圆柱体 collision object 写入
     MoveIt 规划场景(foxy 没有 octomap 插件的替代避障方案)
@@ -37,6 +40,8 @@ ROS2 Foxy 包: `rclcpp` `rclcpp_components` `sensor_msgs` `geometry_msgs` `std_m
 `visualization_msgs` `cv_bridge` `image_geometry` `tf2` `tf2_ros` `tf2_geometry_msgs`
 `moveit_msgs` `moveit_ros_planning_interface` `OpenCV`, 以及工作区内的
 `elfin5_ros2_gazebo` `elfin5_ros2_moveit2` `elfin_basic_api`。
+人脸检测的 Haar 级联文件由系统包 `libopencv-data` 提供
+(`/usr/share/opencv4/haarcascades/`, OpenCV 4.2 自带, 无需额外安装)。
 
 **仿真运行额外需要(仅运行时, 不影响编译)**:
 
@@ -101,6 +106,31 @@ launch 文件内有注释, 以 `rs_launch.py` 实际为准。
 
 只换检测器: 直接改 launch 中 `vision_container` 的
 `composable_node_descriptions`, 两个检测器输出接口相同(`/person_pose`)。
+
+### 4. 真机人脸跟随(实相机 + 实机械臂)
+
+前置: 先用 `cos_ws/scripts/start_real.py` 拉起机械臂硬件 + MoveIt 栈
+(EtherCAT ros2_control_node 需要 capsh 用户态授权), 并在 Elfin Control
+Panel 里 Clear Fault → Servo On。然后:
+
+```bash
+export ROS_LOCALHOST_ONLY=1   # 与 start_real.py 一致
+ros2 launch cos_rsvisual elfin5_rs_face_real.launch.py
+```
+
+- 启动 realsense2_camera(彩色 640x480@15 + `align_depth` 深度对齐彩色,
+  关点云省 USB 带宽), `elfin_end_link → camera_link` 静态 TF 把相机
+  TF 树挂到机械臂 TF 树上(外参 = `mount_xyz/mount_rpy` launch 参数);
+- `face_visual_detector`: Haar 正脸检测(参数见 `config/face_follow.yaml`),
+  人脸框中心区域深度中值反投影 → `/face_pose`; `/face_debug_image`
+  调试图用 `rqt_image_view` 查看;
+- `face_follower`(ArmFollower 实例): 订阅 `/face_pose`, 末端位置不变、
+  转动姿态让相机对准人脸; 真机速度缩放默认 0.2。
+- 运行时开关: `ros2 param set /face_follower enable_follow false`
+  (检测器同理: `/face_visual_detector enable false`)。
+- **安全**: 跟随动作为小姿态调整, 但仍建议首次运行时把人机距离保持在
+  keep_distance(0.4m)以上, 手放急停旁; 先 `enable_follow:=false` 启动,
+  确认 `/face_pose` 输出合理(RViz/echo)后再打开跟随。
 
 ## 眼在手上标定
 

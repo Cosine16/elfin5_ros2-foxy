@@ -2,7 +2,7 @@
 
 > Elfin5 + RealSense D435i（眼在手上 / eye-in-hand）视觉跟随与障碍物感知
 > 环境：Ubuntu 20.04 + ROS2 Foxy + Gazebo 11 + MoveIt2 (2.2.3)
-> 更新日期：2026-09-02
+> 更新日期：2026-09-09
 
 ---
 
@@ -57,8 +57,18 @@
 |---|---|---|---|
 | `cos_rsvisual::PersonDepthDetector` | `/person_depth_detector` | 深度图距离带 [0.3, 2.9]m 分割，最大连通域质心反投影 | `depth_topic`, `min_range`, `max_range`, `min_cluster_pixels`, `target_frame` |
 | `cos_rsvisual::PersonVisualDetector` | `/person_visual_detector` | HOG 人形检测 + 深度取距（备选，`enable_visual_detector:=true` 切换） | `detect_every_n_frames`, `scale_factor` |
-| `cos_rsvisual::ArmFollower` | `/arm_follower` | 末端姿态跟随；内置 MoveGroupInterface 直接规划执行 | `deadband`, `update_period`, `keep_distance`, `min_height`, `initial_joints`, `enable_follow` |
+| `cos_rsvisual::FaceVisualDetector` | `/face_visual_detector` | Haar 人脸检测（彩色图）+ 对齐深度取距 → `/face_pose`（真机专用，参数在 config/face_follow.yaml） | `cascade_path`, `min_neighbors`, `min_face_size`, `face_topic` |
+| `cos_rsvisual::ArmFollower` | `/arm_follower`（人脸跟随实例名 `/face_follower`，改订 `/face_pose`） | 末端姿态跟随；内置 MoveGroupInterface 直接规划执行 | `person_topic`, `deadband`, `update_period`, `keep_distance`, `min_height`, `initial_joints`, `enable_follow` |
 | `cos_rsvisual::ObstacleUpdater` | `/obstacle_updater` | `/person_pose` → 圆柱体 collision object → 规划场景 | `obstacle_radius`, `obstacle_height`, `update_period`, `move_threshold`, `lost_timeout` |
+
+真机人脸跟随链路（`elfin5_rs_face_real.launch.py`）：机械臂硬件 + MoveIt 由
+`cos_ws/scripts/start_real.py` 先行拉起；本 launch 只加相机与视觉：
+realsense2_camera（彩色 + align_depth 对齐深度，关点云）→ FaceVisualDetector
+→ `/face_pose` → face_follower（ArmFollower）→ move_group（硬件栈的）。
+相机 TF 挂接：realsense 驱动发布 `camera_link → *_optical_frame`，本 launch 的
+static_transform_publisher 补 `elfin_end_link → camera_link`（外参 =
+launch 参数 mount_xyz/mount_rpy），不再起第二个 robot_state_publisher
+（硬件栈已发关节 TF，避免双 rsp 重发同一 TF 树）。
 
 容器：`/vision_container`（rclcpp_components `component_container`，单进程）。
 
@@ -70,6 +80,11 @@
 | `/camera/depth/camera_info` | `sensor_msgs/CameraInfo` | gazebo 插件 → 检测器 | 相机内参，首帧后即释放订阅 |
 | `/camera/points` | `sensor_msgs/PointCloud2` | gazebo 插件 → RViz | 点云可视化（foxy 无 octomap 插件，见 §5） |
 | `/person_pose` | `geometry_msgs/PoseStamped` | 检测器 → 跟随器/障碍物更新器 | 人的位置，frame=world，orientation 无意义(恒等) |
+| `/face_pose` | `geometry_msgs/PoseStamped` | face_visual_detector → face_follower | 人脸位置，frame=world，orientation 无意义(恒等) |
+| `/face_marker` | `visualization_msgs/Marker` | face_visual_detector → RViz | 橙色小球(0.08m) |
+| `/face_debug_image` | `sensor_msgs/Image` (BGR8) | face_visual_detector → rqt_image_view | 彩色图画人脸框 + 距离标注，调参用 |
+| `/camera/color/image_raw` | `sensor_msgs/Image` (BGR8) | realsense → face_visual_detector | 真机彩色图 |
+| `/camera/aligned_depth_to_color/image_raw` | `sensor_msgs/Image` (16UC1) | realsense → face_visual_detector | 对齐到彩色的深度图(align_depth.enable:=true) |
 | `/person_marker` | `visualization_msgs/Marker` | 检测器 → RViz | 红色小球 |
 | `/planning_scene` | `moveit_msgs/PlanningScene`(diff) | obstacle_updater → move_group | 假人圆柱体 `person_obstacle` 的增删改 |
 | `/joint_states` | `sensor_msgs/JointState` | ros2_control → 全图 | |
@@ -95,6 +110,11 @@ world ──(固定)──> elfin_base_link ──> elfin_base ──> elfin_lin
 - 仿真中 camera 挂载外参精确已知（URDF 定义）；
 - 真机需做眼在手上标定（推荐 easy_handeye），结果填入 launch 参数
   `mount_xyz` / `mount_rpy`。
+- **真机人脸跟随链路的 TF 略有不同**：硬件栈的 robot_state_publisher 用
+  官方 URDF（无相机），`elfin_end_link → camera_link` 由
+  `elfin5_rs_face_real.launch.py` 的 static_transform_publisher 发布，
+  `camera_link → camera_color/depth_optical_frame` 由 realsense2_camera
+  驱动发布（publish_tf 默认开）。三段拼成完整链，无需改动硬件栈。
 
 ## 5. 已踩过的坑（Foxy 环境实测）
 

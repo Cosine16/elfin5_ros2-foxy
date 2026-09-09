@@ -260,6 +260,15 @@ def generate_launch_description():
     follower_yaml = os.path.join(
         get_package_share_directory("cos_rsvisual"), "config", "follower.yaml")
 
+    # 注意: foxy 的 launch_ros 把传给 ComposableNode 的 yaml 文件整体扁平化成
+    # "节点名.ros__parameters.参数名" 的参数列表发给容器, rclcpp 不做分节匹配,
+    # 参数静默不生效(此前靠代码默认值恰好等于 yaml 才没暴露, 如 max_range 2.0/2.9)。
+    # 这里自行读 yaml 取出对应节点分节, 以纯 dict 形式传入(按精确名生效)。
+    def _load_section(section):
+        with open(follower_yaml) as f:
+            data = yaml.safe_load(f)
+        return data[section]['ros__parameters']
+
     # foxy 的 ComposableNode 不支持 condition, 用 OpaqueFunction 在运行时
     # 根据 enable_visual_detector 组装组件列表(深度/视觉检测器互斥)
     def _make_vision_container(context):
@@ -270,21 +279,24 @@ def generate_launch_description():
                 package='cos_rsvisual',
                 plugin='cos_rsvisual::PersonVisualDetector',
                 name='person_visual_detector',
-                parameters=[follower_yaml, {'use_sim_time': use_sim_time}],
+                parameters=[_load_section('person_visual_detector'),
+                            {'use_sim_time': use_sim_time}],
             )
         else:
             detector = ComposableNode(
                 package='cos_rsvisual',
                 plugin='cos_rsvisual::PersonDepthDetector',
                 name='person_depth_detector',
-                parameters=[follower_yaml, {'use_sim_time': use_sim_time}],
+                parameters=[_load_section('person_depth_detector'),
+                            {'use_sim_time': use_sim_time}],
             )
         follower = ComposableNode(
             package='cos_rsvisual',
             plugin='cos_rsvisual::ArmFollower',
             name='arm_follower',
             # MoveGroupInterface 需要 robot_description + robot_description_semantic + kinematics
-            parameters=[follower_yaml, {'use_sim_time': use_sim_time},
+            parameters=[_load_section('arm_follower'),
+                        {'use_sim_time': use_sim_time},
                         robot_description, robot_description_semantic,
                         robot_description_kinematics],
         )
@@ -292,13 +304,15 @@ def generate_launch_description():
             package='cos_rsvisual',
             plugin='cos_rsvisual::ObstacleUpdater',
             name='obstacle_updater',
-            parameters=[follower_yaml, {'use_sim_time': use_sim_time}],
+            parameters=[_load_section('obstacle_updater'),
+                        {'use_sim_time': use_sim_time}],
         )
         return [ComposableNodeContainer(
             name='vision_container',
             namespace='',
             package='rclcpp_components',
-            executable='component_container',
+            # 多线程容器: 检测回调耗 CPU, 单线程会把参数服务/TF/定时器饿死
+            executable='component_container_mt',
             composable_node_descriptions=[detector, follower, obstacle_updater],
             output='screen',
         )]

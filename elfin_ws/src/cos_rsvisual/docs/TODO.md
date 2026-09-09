@@ -1,6 +1,6 @@
 # cos_rsvisual TODO 代办清单
 
-> 更新日期：2026-09-02
+> 更新日期：2026-09-09
 
 ## ✅ 已完成（仿真环境验证过）
 
@@ -20,6 +20,12 @@
   规划+执行成功（"Solution was found and executed"）
 - [x] 一键仿真 launch：gazebo(actor world) + MoveIt + RViz + 组件容器
 - [x] 假人 world：圆心 (2.0,0,0) r=0.5m，位于 home 位姿相机视野与距离带内
+- [x] `face_visual_detector`：Haar 正脸检测（可选侧面级联兜底）+ 对齐深度取距
+  → `/face_pose` + `/face_debug_image` 调试图（编译零警告，待实相机实跑）
+- [x] 真机人脸跟随 launch：`elfin5_rs_face_real.launch.py`（realsense 彩色 +
+  align_depth + `elfin_end_link→camera_link` 静态 TF + FaceVisualDetector +
+  face_follower(ArmFollower 实例, 订 `/face_pose`)），参数文件
+  `config/face_follow.yaml`；前置硬件栈仍由 `cos_ws/scripts/start_real.py` 拉起
 
 ## 🔧 进行中
 
@@ -35,6 +41,13 @@
 
 ## 📋 待办
 
+- [ ] **真机人脸跟随实跑调优**：
+  - Haar 参数（`min_neighbors`/`min_face_size`/`scale_factor`）按实机画面调，
+    看 `/face_debug_image`（rqt_image_view）；误检多调大 min_neighbors
+  - USB2.1 带宽：彩色 + align_depth 640x480@15 若掉帧，先关 align_depth
+    改用 `/camera/depth/image_rect_raw`（人脸框取距会受像素错位影响，慎用），
+    或降 `rgb_module.profile`/`depth_module.profile` 到 15fps 以下
+  - 确认 `/face_pose` 合理后先 `enable_follow:=false` 观察，再开跟随
 - [ ] **真机手眼标定**：easy_handeye（eye-in-hand），结果填 `mount_xyz/mount_rpy`；
   骨架：`include/cos_rsvisual/hand_eye_calibrator.hpp`
 - [ ] **实相机接入**：`rs_camera.launch.py` + follower.yaml 话题切换到
