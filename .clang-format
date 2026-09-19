@@ -1,0 +1,51 @@
+# .clang-format —— 本项目 C/C++ 代码风格
+#
+# 采用 ROS 2 (ament) 风格: Google 基底 + 2 空格缩进 + 100 列。
+# 用法:
+#   clang-format -i src/foo.cpp              # 就地格式化单个文件
+#   git clang-format HEAD~1                  # 只格式化改动过的行
+#   VS Code: 保存时自动格式化(见 .vscode/settings.json)
+# 校验:
+#   clang-format --dry-run --Werror src/foo.cpp
+#
+# 注: 本项目工具链为 clang-format 21 (/usr/bin/clang-format-21)，
+#     下面只使用该版本仍然有效的选项。
+
+Language: Cpp
+BasedOnStyle: Google
+
+# ---- 缩进 / 列宽 (ROS 2: 2 空格, 100 列) ----
+IndentWidth: 2
+TabWidth: 2
+UseTab: Never
+ColumnLimit: 100
+
+# ---- 类成员访问修饰符: 与 class 关键字对齐而不是缩进 ----
+AccessModifierOffset: -2
+
+# ---- 指针/引用左贴: int* p ----
+DerivePointerAlignment: false
+PointerAlignment: Left
+
+# ---- 不把短函数体压到一行，保持可读性与断点友好 ----
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Never
+AllowShortCaseLabelsOnASingleLine: false
+
+# ---- include 顺序交给人工维护(ROS 头文件有约定顺序，自动重排易出错) ----
+SortIncludes: Never
+SortUsingDeclarations: false
+
+# ---- 命名空间闭合处加注释: }  // namespace foo ----
+FixNamespaceComments: true
+
+# ---- 函数定义/模板参数换行 ----
+BinPackArguments: true
+BinPackParameters: true
+AllowAllParametersOfDeclarationOnNextLine: true
+AlwaysBreakTemplateDeclarations: Yes
+
+# ---- 花括号: 左花括号不换行(K&R) ----
+BreakBeforeBraces: Attach

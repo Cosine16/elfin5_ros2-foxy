@@ -5,7 +5,7 @@ start_sim.py
 ============
 根据 README_cn.md 中的仿真章节命令，自动打开多个终端窗口，
 并在每个终端中依次执行:
-    1. source ~/cos_ws/elfin_ws/install/setup.bash
+    1. source <脚本目录>/../elfin_ws/install/setup.bash   # 相对脚本位置解析
     2. sudo + ros2 launch <仿真命令>
 
 支持机型(前缀): elfin5 (其余机型的 moveit2/gazebo 包已移除)
@@ -15,7 +15,7 @@ start_sim.py
     python3 start_sim.py --no-sudo            # 不使用 sudo
     python3 start_sim.py --elfin elfin5       # 启动 Elfin5 仿真
     python3 start_sim.py --list               # 只打印将要执行的命令, 不启动终端
-    python3 start_sim.py --workspace ~/cos_ws/elfin_ws   # 指定工作空间路径
+    python3 start_sim.py --workspace ../elfin_ws   # 指定工作空间路径(相对/绝对均可)
 
 注意:
     - 使用 sudo 时, 每个终端会提示输入密码, 请在对应终端中手动输入。
@@ -32,7 +32,12 @@ import sys
 # ---------------------------------------------------------------------------
 # 可配置项
 # ---------------------------------------------------------------------------
-CATKIN_WS = os.path.expanduser("~/cos_ws/elfin_ws")  # 工作空间路径(可被 --workspace 覆盖)
+# 本脚本所在目录 (cos_ws/scripts)，所有默认路径都以它为基准解析，便于整仓移动
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# 工作空间路径: 默认取脚本目录的上一级(cos_ws)下的 elfin_ws, 可被 --workspace 覆盖。
+# 不写死用户家目录, 仓库整体拷贝到任意位置都能找到构建产物。
+CATKIN_WS = os.path.abspath(os.path.join(SCRIPT_DIR, os.pardir, "elfin_ws"))
 SETUP_SCRIPT = os.path.join(CATKIN_WS, "install", "setup.bash")
 
 # 仿真时每个终端要启动的命令。
@@ -134,10 +139,12 @@ def main():
     parser.add_argument("--list", action="store_true",
                         help="只打印将要执行的命令, 不启动终端")
     parser.add_argument("--workspace", default=CATKIN_WS,
-                        help="工作空间路径, 默认 ~/cos_ws/elfin_ws")
+                        help="工作空间路径(相对/绝对均可), "
+                             "默认 <脚本目录>/../elfin_ws")
     args = parser.parse_args()
 
-    CATKIN_WS = os.path.expanduser(args.workspace)
+    # --workspace 允许传相对路径(相对当前工作目录), 统一转成绝对路径
+    CATKIN_WS = os.path.abspath(os.path.expanduser(args.workspace))
     SETUP_SCRIPT = os.path.join(CATKIN_WS, "install", "setup.bash")
 
     # 检查工作空间是否已经编译

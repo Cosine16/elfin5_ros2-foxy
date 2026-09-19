@@ -16,7 +16,7 @@
 #
 # 环境变量:
 #   SIM_SUDO=1      以 `sudo -E` 执行仿真命令（默认不用 sudo；已是 root 自动忽略）
-#   SIM_WS=<path>   覆盖工作空间路径（默认 ~/cos_ws/elfin_ws）
+#   SIM_WS=<path>   覆盖工作空间路径（默认 <脚本目录>/../elfin_ws）
 # =====================================================================
 set -euo pipefail
 
@@ -25,7 +25,10 @@ set -euo pipefail
 # gnome-terminal 以 bash -c 非交互方式运行（不读 ~/.bashrc），必须在这里导出。
 export ROS_LOCALHOST_ONLY=1
 
-WS="${SIM_WS:-$HOME/cos_ws/elfin_ws}"
+# 默认工作空间 = 本脚本所在目录(cos_ws/scripts)的上一级下的 elfin_ws。
+# 用相对脚本位置解析（而非写死 $HOME/cos_ws），整仓移动到任意路径都能找到构建产物。
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WS="${SIM_WS:-$SCRIPT_DIR/../elfin_ws}"
 SETUP="$WS/install/setup.bash"
 LOG_DIR="$WS/log/sim"
 
@@ -145,7 +148,7 @@ case "${1:-}" in
 
 环境变量:
   SIM_SUDO=1      以 sudo -E 执行仿真命令（默认不用）
-  SIM_WS=<path>   覆盖工作空间路径（默认 ~/cos_ws/elfin_ws）
+  SIM_WS=<path>   覆盖工作空间路径（默认 <脚本目录>/../elfin_ws）
 HELP
     ;;
 esac

@@ -6,17 +6,27 @@
 ## 0. 先备好环境(每次开终端第一件事)
 
 ```bash
-source ~/cos_ws/scripts/elfin_env.sh
+source ~/ws_ros2/cos_ws/scripts/elfin_env.sh
 ```
 
 它做三件事: source foxy → source `elfin_ws/install/setup.bash` → `export ROS_LOCALHOST_ONLY=1`。
 第三项必须和 `start_real.py` / `start_sim.py` 里的设置一致, 否则看不到它们启动的节点。
 
+> [!danger] 第一原则: **调试终端必须与 ROS 节点同 uid, 否则什么都看不到**
+> 本项目实测: root 与 fit 的 DDS 参与者**互相发现不了**(见
+> [[排查证据-面板与驱动通信调查#证据 13: root↔fit 跨用户 DDS 发现失败(2026-09-19 重测)]])。
+> 所以:
+> - 实机由 `start_real.py` 以 **root** 启动节点 → 调试也必须用 **root** 身份:
+>   `bash ~/ws_ros2/cos_ws/scripts/root_ros.sh rqt`
+> - 普通用户终端里 `source elfin_env.sh` 再 `rqt`, **只能看到同样是 fit 的节点**, 看不到实机节点。
+> - 想用普通用户看节点, 必须让节点也以 fit 运行(见 §8 的"全 fit"路线)。
+
 需要 root 身份调试时:
 
 ```bash
-bash ~/cos_ws/scripts/root_ros.sh                 # 环境已配好的 root shell
-bash ~/cos_ws/scripts/root_ros.sh ros2 topic list # 以 root 跑单条命令
+bash ~/ws_ros2/cos_ws/scripts/root_ros.sh                 # 环境已配好的 root shell
+bash ~/ws_ros2/cos_ws/scripts/root_ros.sh ros2 topic list # 以 root 跑单条命令
+bash ~/ws_ros2/cos_ws/scripts/root_ros.sh rqt             # 以 root 开 rqt(实机现场要用这个)
 ```
 
 ## 1. 排查方法论: 分层验证
@@ -29,8 +39,21 @@ ROS2 的通信分三层, 出问题时**按层定位**, 不要混在一起猜:
 | 话题数据流 | `ros2 topic echo / hz` | 有数据到达 |
 | 服务调用 | `ros2 service call` | 有 response |
 
-关键结论(2026-08-22 实测): **root ↔ fit 跨用户的发现、话题、服务全部正常**。
-"普通用户 rqt 看不到东西"的真实原因不是权限, 而是下面 §5 的几个坑。
+关键结论(2026-09-19 **更正**): ~~root ↔ fit 跨用户的发现、话题、服务全部正常~~
+**实测为: 跨 uid 连发现都做不到**(root↔fit 互不可见; 同 uid 才通)。
+"普通用户 rqt 看不到东西"的**根本原因就是 uid 不一致**, §5 的几个坑是次要的
+加剧因素(会让人误判, 但修好它们也看不到跨 uid 的节点)。
+
+判据顺序: **先比 uid → 再查环境变量/缓存/窗口**。
+复现方法见 [[排查证据-面板与驱动通信调查#证据 13: root↔fit 跨用户 DDS 发现失败(2026-09-19 重测)]],
+探针脚本 `scripts/dds_discovery_probe.py`。
+
+> [!note] 更正原因
+> 2026-08-22 那次判定的依据是"某次现场 fit 侧收到了 root 的数据"(单次观测,
+> 未按 uid 组合做对照)。2026-09-19 用探针在多个干净 domain 上做对照矩阵后推翻:
+> **同 uid 必通、跨 uid 必不通**, 与 `ROS_LOCALHOST_ONLY`、umask、domain 是否干净无关。
+> 与当年的环境差异: 现在默认路由在 `enx000ec68eca09`, `lo` 无 `MULTICAST` 标志,
+> 组播根本不走回环 → 没有任何回退通路。
 
 ## 2. 常用命令速查
 
@@ -137,15 +160,30 @@ ElfinEtherCATDriver → SOEM → EtherCAT → 机械臂
 
 ## 4. rqt 的正确打开方式
 
+**实机现场(节点以 root 运行)** —— 必须以 root 开 rqt:
+
 ```bash
-source ~/cos_ws/scripts/elfin_env.sh
+bash ~/ws_ros2/cos_ws/scripts/root_ros.sh rqt     # 或 rqt_graph
+```
+
+**仿真(Gazebo 全程以 fit 运行)** —— 普通用户即可:
+
+```bash
+source ~/ws_ros2/cos_ws/scripts/elfin_env.sh
 rqt    # 或 rqt_graph
 ```
+
+> [!warning] 先确认身份再启动
+> ```bash
+> ps -eo user,comm --no-headers | grep -E 'ros2_control|rviz2|move_group|elfin'
+> ```
+> 节点是 root 就必须 `root_ros.sh rqt`; 节点是 fit 就普通 `rqt`。
+> **身份混用一定空白**, 不要浪费时间在 daemon 缓存或窗口上。
 
 - `rqt_graph`: 只看 node↔topic; service/action 看不到。
 - Plugins → Services → Service Caller: 图形化调 `/enable_robot` `/clear_fault`, 可代替面板隔离问题。
 - Plugins → Topics → Topic Monitor: 盯 `/enable_state` `/fault_state`。
-- `rqt_console`: 看 /rosout。root 节点的日志也能收到(发现层正常)。
+- `rqt_console`: 看 /rosout。同 uid 时能看到该 uid 节点的日志。
 
 Foxy 官方文档:
 - CLI 工具: https://docs.ros.org/en/foxy/Tutorials/Beginner-CLI-Tools.html
@@ -166,9 +204,17 @@ Foxy 官方文档:
    缓冲区丢失, "没输出"不代表"没发布"。写文件或不用管道。
 5. **`pkill -f '关键字'` 会匹配到自己**: 执行 pkill 的 bash 命令行里若含同样关键字, 会自杀。
 6. **sudo 环境**: sudo 清空环境变量, 所以 root 下必须重新 source(`root_ros.sh` 已封装)。
-   但跨用户 DDS 通信本身没有问题, 不要再怀疑权限。
 7. **网卡环境**: 本机 enp2s0 同时跑 EtherCAT(混杂模式)和 DHCP(192.168.137.x), 另有 tailscale0。
    多网卡下 Fast DDS 发现可能更慢, 这也是坑 2 的原因之一; `ROS_LOCALHOST_ONLY=1` 可规避。
+8. **❗跨 uid 一定不通(本手册第一原则)**: root 跑的节点, fit 侧**永远看不到**,
+   反之亦然。实测矩阵见 [[排查证据-面板与驱动通信调查#证据 13: root↔fit 跨用户 DDS 发现失败(2026-09-19 重测)]]。
+   机理: 同机默认走 Fast-DDS 共享内存, SHM 段跨 uid 打不开; 而 `ROS_LOCALHOST_ONLY=1`
+   把组播限制在回环, 本机 `lo` 又没有 `MULTICAST` 标志(组播实际走 `enx000ec68eca09`),
+   于是**没有回退通路**。
+   - 实机(节点 root) → `root_ros.sh rqt`
+   - 想让普通用户直接看 → 让节点也以 fit 跑(`start_real.py --no-sudo`, 需先按 §8 提权)
+   - **禁止**驱动 root + 其余 fit 混跑: 两组互不可见, spawner↔controller_manager 直接断链。
+   一分钟自测: `python3 scripts/dds_discovery_probe.py TestA 15`(另一个终端起 TestB, 看是否互见)。
 
 ## 6. 上次现场快照(2026-08-22, 实机连接中)
 
@@ -183,9 +229,44 @@ Foxy 官方文档:
 真机链路已验证畅通, 后续在仿真里复现/调试面板与驱动交互:
 
 ```bash
-python3 ~/cos_ws/scripts/start_sim.py            # 起 Gazebo + MoveIt + basic_api + 面板(3 个终端)
+python3 ~/ws_ros2/cos_ws/scripts/start_sim.py --no-sudo   # 起 Gazebo + MoveIt + basic_api + 面板(3 个终端)
 ```
 
 仿真模式差异: 面板 `use_fake_robot=True`, Servo On/Off 改调 `/elfin_basic_api/enable_robot|disable_robot`
 (只做 controller 切换, 不碰 EtherCAT), IO 轮询关闭; 轨迹 action 发给 Gazebo 的同名控制器。
-排查命令与本文档完全相同, 只是进程都以普通用户运行, 没有 sudo 问题。
+
+> [!warning] 仿真**不要**用 sudo
+> 仿真不需要 EtherCAT 裸套接字, 加 sudo 只会让节点全变成 root, 反而要 root 才能看 rqt
+> (见坑 8)。故 `start_sim.py` 请加 `--no-sudo`, 与 `start_sim.sh`(`SIM_SUDO=0`)保持一致。
+> ⚠️ 待办: `start_sim.py` 目前**默认仍带 sudo**, 建议后续把默认值改为"无 sudo"。
+
+## 8. 全 fit 路线(让普通用户直接看到节点, 免 sudo)
+
+目标形态: 所有 ROS 进程以 **fit** 运行 → 统一 uid → 普通 `rqt` 直接可用,
+且不会在 `~/.ros`、`~/.rviz2` 留下 root 所有的文件。
+
+前提是让驱动所需的两种特权在**启动时一次性授予**, 之后就不用 sudo 了。提权目标是
+`ros2_control_node` —— EtherCAT 硬件接口 `libelfin_hardware_interface.so` 是它加载的
+**插件**(SOEM 静态链在其中), 所以要对宿主体授权, 插件本身无法 setcap:
+
+```bash
+# 1) 裸套接字(EtherCAT/SOEM 需要) + 实时调度(SOEM 用 SCHED_FIFO, 需要 CAP_SYS_NICE)
+sudo setcap cap_net_raw,cap_sys_nice+ep /opt/ros/foxy/lib/controller_manager/ros2_control_node
+
+# 2) 放开 fit 的实时优先级(当前 ulimit -r = 0)
+sudo tee /etc/security/limits.d/95-elfin-rt.conf >/dev/null <<'EOF'
+fit  -  rtprio  95
+fit  -  memlock unlimited
+EOF
+# 改完需要重新登录(或 reboot)才生效
+
+# 3) 全部以 fit 启动, 之后普通 rqt 直接可用
+python3 ~/ws_ros2/cos_ws/scripts/start_real.py --no-sudo
+rqt
+```
+
+注意:
+- `setcap` 会在该文件被 apt 升级后失效, 需重新执行(放进启动脚本每次跑一遍最省事)。
+- **本条路线尚未在真机上验证**(SOEM 的裸套接字与 `SCHED_FIFO` 能否靠能力位正常工作是关键),
+  首次启用务必先只跑 1 号驱动终端, 确认 EtherCAT 从站扫描与 `/enable_state` 正常后再起其余终端。
+- 若验证失败, 回退到"全 root"(`start_real.py` 不带 `--no-sudo`)并用 `root_ros.sh rqt` 调试。

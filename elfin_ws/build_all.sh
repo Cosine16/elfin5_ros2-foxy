@@ -21,3 +21,9 @@ cd "$WS"
 echo "=== 开始构建: $(date) ==="
 colcon build --continue-on-error --cmake-args -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 echo "=== 构建结束: $(date) exit=$? ==="
+
+# CMake 只把 compile_commands.json 写到 build/<包名>/ 下, colcon 不会合并。
+# 合并成 elfin_ws/compile_commands.json, 供 clangd(.clangd 里已指向本目录)使用。
+echo "=== 合并编译数据库(供 clangd 使用): $(date) ==="
+python3 "$WS/merge_compile_commands.py" || \
+    echo "[warn] 合并编译数据库失败, clangd 可能无法正确解析头文件"
