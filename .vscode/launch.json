@@ -8,6 +8,7 @@
     // 不 attach ros2_control_node 与 elfin_ethercat_driver（暂停会触发 EtherCAT 看门狗）。
     "version": "0.2.0",
     "configurations": [
+        
         {
             // Python GUI: 需先用 ELFIN_GUI_DEBUG=1 启动 elfin_gui.py（脚本内 debugpy.listen(5678)）
             // 未设该环境变量时脚本无任何调试开销，正常跑。

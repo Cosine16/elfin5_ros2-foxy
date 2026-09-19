@@ -23,7 +23,13 @@ find_package(geometry_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(trajectory_msgs REQUIRED)
 
-add_executable(circle_motion src/circle_motion_node.cpp)
+include_directories(include)
+
+add_executable(circle_motion
+  src/circle_geometry.cpp
+  src/circle_motion_node.cpp
+  src/trajectory_retimer.cpp
+)
 ament_target_dependencies(circle_motion
   rclcpp
   moveit_core
@@ -53,5 +59,8 @@ install(PROGRAMS scripts/circle_panel.py scripts/api_demo.py
 
 install(DIRECTORY launch
   DESTINATION share/${PROJECT_NAME})
+
+install(DIRECTORY include/
+  DESTINATION include)
 
 ament_package()

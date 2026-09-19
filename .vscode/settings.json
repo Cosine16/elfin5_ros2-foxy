@@ -1,4 +1,5 @@
 {
+    "vscode_custom_css.imports": [""],
     "ROS2.distro": "foxy",
     "python.autoComplete.extraPaths": [
         "/opt/ros/foxy/lib/python3.8/site-packages"
@@ -16,11 +17,5 @@
     "files.associations": {
         ".clangd": "yaml"
     },
-    "python-envs.pythonProjects": [
-        {
-            "path": ".",
-            "envManager": "ms-python.python:system",
-            "packageManager": "ms-python.python:pip"
-        }
-    ]
+    "python-envs.defaultEnvManager": "ms-python.python:system"
 }

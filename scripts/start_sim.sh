@@ -43,19 +43,28 @@ need_setup() {
 }
 
 # 选择一个可用的系统终端模拟器；没有则返回非 0（调用方走后台模式）
+# 注意：WSL 下常见 xterm 与 WSLg/X11 组合不兼容，优先避开 xterm。
 detect_terminal() {
+  if [ -n "${WSL_DISTRO_NAME:-}" ]; then
+    for t in gnome-terminal x-terminal-emulator xfce4-terminal konsole; do
+      command -v "$t" >/dev/null 2>&1 && { echo "$t"; return 0; }
+    done
+    return 1
+  fi
+
   for t in gnome-terminal x-terminal-emulator xfce4-terminal konsole xterm; do
     command -v "$t" >/dev/null 2>&1 && { echo "$t"; return 0; }
   done
   return 1
 }
 
-# 在 WSL / 无 X11 环境下，GUI 终端可能不可用，退回到后台模式。
+# WSLg/Wayland/X11 的图形环境不一定都能正常跑 GUI 终端；
+# 当 DISPLAY/WAYLAND_DISPLAY 全空、或在 WSL 中确实没有有效 GUI 连接时退回后台模式。
 check_gui_env() {
-  if [ -n "${WSL_DISTRO_NAME:-}" ] && [ -z "${DISPLAY:-}" ] && [ -z "${WAYLAND_DISPLAY:-}" ]; then
-    return 1
+  if [ -n "${DISPLAY:-}" ] || [ -n "${WAYLAND_DISPLAY:-}" ]; then
+    return 0
   fi
-  return 0
+  return 1
 }
 
 # 在新终端窗口运行一个 ros2 launch（失败时窗口停留 5 秒便于查看错误）
@@ -74,7 +83,7 @@ open_term() {
       gnome-terminal --title="$name" -- bash -c "$inner" &
       ;;
     x-terminal-emulator)
-      x-terminal-emulator --title="$name" -- bash -c "$inner" &
+      x-terminal-emulator -T "$name" -e bash -c "$inner" &
       ;;
     xfce4-terminal)
       xfce4-terminal --title="$name" -x bash -c "$inner" &
@@ -83,7 +92,7 @@ open_term() {
       konsole --title "$name" -e bash -c "$inner" &
       ;;
     xterm)
-      xterm -title "$name" -e bash -c "$inner" &
+      xterm -T "$name" -e bash -c "$inner" &
       ;;
   esac
   echo "已打开终端窗口: $name"
@@ -117,7 +126,7 @@ stop_all() {
 
 TERM_CMD="$(detect_terminal)" || TERM_CMD=""
 if [ -n "$TERM_CMD" ] && ! check_gui_env; then
-  echo "检测到 WSL / 无图形显示环境：未检测到 DISPLAY 或 WAYLAND_DISPLAY，回退到后台模式。"
+  echo "检测到当前环境无有效 GUI 显示（DISPLAY/WAYLAND_DISPLAY 为空），回退到后台模式。"
   TERM_CMD=""
 fi
 if [ -z "$TERM_CMD" ]; then

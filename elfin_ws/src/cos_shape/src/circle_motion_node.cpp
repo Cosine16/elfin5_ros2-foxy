@@ -36,7 +36,6 @@
  * - `~/state` (`std_msgs/msg/String`)：每圈结束发布一次状态摘要。
  */
 
-#include <array>
 #include <atomic>
 #include <chrono>
 #include <cmath>
@@ -57,54 +56,14 @@
 #include <std_msgs/msg/string.hpp>
 #include <trajectory_msgs/msg/joint_trajectory.hpp>
 
+#include <cos_shape/circle_geometry.hpp>
+#include <cos_shape/trajectory_retimer.hpp>
 #include <moveit/move_group_interface/move_group_interface.h>
-#include <moveit/robot_trajectory/robot_trajectory.h>
-#include <moveit/trajectory_processing/iterative_time_parameterization.h>
 
 namespace
 {
 constexpr double kTwoPi = 6.283185307179586;
 
-using Vec3 = std::array<double, 3>;
-
-/** @brief 计算两个三维向量的叉积。 */
-Vec3 cross(const Vec3& a, const Vec3& b)
-{
-  return { a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0] };
-}
-
-/** @brief 返回三维向量的欧几里得范数。 */
-double norm(const Vec3& v)
-{
-  return std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
-}
-
-/** @brief 将三维向量归一化。 */
-Vec3 normalize(const Vec3& v)
-{
-  const double n = norm(v);
-  return { v[0] / n, v[1] / n, v[2] / n };
-}
-
-/**
- * @brief 按比例缩放关节轨迹的时间戳、速度和加速度。
- * @param jt 待缩放的关节轨迹。
- * @param k 时间缩放系数；大于 1 表示减速，小于 1 表示加速。
- */
-void scaleTrajectoryTime(trajectory_msgs::msg::JointTrajectory& jt, double k)
-{
-  for (auto& p : jt.points)
-  {
-    const int64_t ns = static_cast<int64_t>(p.time_from_start.sec) * 1000000000LL + p.time_from_start.nanosec;
-    const int64_t scaled = static_cast<int64_t>(ns * k);
-    p.time_from_start.sec = static_cast<int32_t>(scaled / 1000000000LL);
-    p.time_from_start.nanosec = static_cast<uint32_t>(scaled % 1000000000LL);
-    for (auto& v : p.velocities)
-      v /= k;
-    for (auto& a : p.accelerations)
-      a /= (k * k);
-  }
-}
 }  // namespace
 
 /**
@@ -233,7 +192,9 @@ public:
 
       // 1) 先走到圆周起点 p(0)
       geometry_msgs::msg::Pose start_pose;
-      const Vec3 p0 = circlePoint(cfg, 0.0);
+        const cos_shape::geometry::CircleDefinition circle{
+          {cfg.center[0], cfg.center[1], cfg.center[2]}, cfg.radius, cfg.inclination, cfg.azimuth};
+        const cos_shape::geometry::Vec3 p0 = cos_shape::geometry::circlePoint(circle, 0.0);
       start_pose.position.x = p0[0];
       start_pose.position.y = p0[1];
       start_pose.position.z = p0[2];
@@ -324,33 +285,6 @@ private:
   }
 
   /**
-   * @brief 计算圆轨迹上指定相位角对应的笛卡尔点。
-   *
-   * 圆平面法线由 `inclination` 和 `azimuth` 决定。平面内的第一个
-   * 基向量取全局 X 轴的投影；当该投影接近退化时改用全局 Y 轴。
-   *
-   * @param cfg 当前圆轨迹参数。
-   * @param theta 圆周相位角，单位为 rad。
-   * @return 规划坐标系中的圆周点，单位为 m。
-   */
-  Vec3 circlePoint(const Config& cfg, double theta) const
-  {
-    const Vec3 n = { std::sin(cfg.inclination) * std::cos(cfg.azimuth),
-                     std::sin(cfg.inclination) * std::sin(cfg.azimuth),
-                     std::cos(cfg.inclination) };
-    Vec3 ref = { 1.0, 0.0, 0.0 };
-    if (std::fabs(n[0]) > 0.99)
-      ref = { 0.0, 1.0, 0.0 };
-    // u = ref 在圆平面内的投影（去掉法向分量后归一化）
-    const double d = ref[0] * n[0] + ref[1] * n[1] + ref[2] * n[2];
-    const Vec3 u = normalize({ ref[0] - d * n[0], ref[1] - d * n[1], ref[2] - d * n[2] });
-    const Vec3 v = cross(n, u);
-    return { cfg.center[0] + cfg.radius * (std::cos(theta) * u[0] + std::sin(theta) * v[0]),
-             cfg.center[1] + cfg.radius * (std::cos(theta) * u[1] + std::sin(theta) * v[1]),
-             cfg.center[2] + cfg.radius * (std::cos(theta) * u[2] + std::sin(theta) * v[2]) };
-  }
-
-  /**
    * @brief 规划一整圈保持姿态不变的笛卡尔路径。
    *
    * @param mgi MoveIt 规划组接口。
@@ -364,19 +298,10 @@ private:
     const geometry_msgs::msg::Quaternion& orientation,
     moveit_msgs::msg::RobotTrajectory& traj)
   {
-    std::vector<geometry_msgs::msg::Pose> waypoints;
-    waypoints.reserve(waypoints_per_rev_);
-    for (int i = 1; i <= waypoints_per_rev_; ++i)
-    {
-      const double theta = kTwoPi * i / waypoints_per_rev_;
-      const Vec3 p = circlePoint(cfg, theta);
-      geometry_msgs::msg::Pose pose;
-      pose.position.x = p[0];
-      pose.position.y = p[1];
-      pose.position.z = p[2];
-      pose.orientation = orientation;
-      waypoints.push_back(pose);
-    }
+    const cos_shape::geometry::CircleDefinition circle{
+        {cfg.center[0], cfg.center[1], cfg.center[2]}, cfg.radius, cfg.inclination, cfg.azimuth};
+    const auto waypoints = cos_shape::geometry::makeCircleWaypoints(
+        circle, orientation, waypoints_per_rev_);
     return mgi.computeCartesianPath(waypoints, eef_step_, 0.0 /*jump_threshold 禁用*/, traj);
   }
 
@@ -410,34 +335,18 @@ private:
       period = kTwoPi / cfg.angular_velocity;
     }
 
-    auto state = mgi.getCurrentState(2.0);
-    if (!state)
+    double original_period = 0.0;
+    if (!cos_shape::trajectory::retimeToPeriod(
+            mgi, group_name_, period, traj, &original_period))
       return false;
 
-    robot_trajectory::RobotTrajectory rt(mgi.getRobotModel(), group_name_);
-    rt.setRobotTrajectoryMsg(*state, traj);
-    trajectory_processing::IterativeParabolicTimeParameterization iptp;
-    if (!iptp.computeTimeStamps(rt, 1.0, 1.0))
-      return false;
-    rt.getRobotTrajectoryMsg(traj);
-
-    auto& points = traj.joint_trajectory.points;
-    if (points.empty())
-      return false;
-    const auto& last = points.back().time_from_start;
-    const double t_old = static_cast<double>(last.sec) + static_cast<double>(last.nanosec) * 1e-9;
-    if (t_old <= 1e-9)
-      return false;
-
-    const double k = period / t_old;
-    if (k < 1.0)
+    if (period < original_period)
     {
       RCLCPP_WARN(get_logger(),
                   "目标周期 %.2fs 快于机械臂满速能力 %.2fs，将被关节速度限制放慢。"
                   "请降低速度。",
-                  period, t_old);
+                  period, original_period);
     }
-    scaleTrajectoryTime(traj.joint_trajectory, k);
     RCLCPP_INFO(get_logger(), "本圈周期 %.2fs（模式 %s）", period, cfg.speed_mode.c_str());
     return true;
   }
