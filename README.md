@@ -5,9 +5,7 @@
 
 ## 运行环境
 
-- 主机：Windows 11 专业版 + Docker Desktop（WSL2）
-- 容器：Ubuntu 20.04 + ROS2 **Foxy** + Gazebo 11 + MoveIt2 2.2.3
-- GUI：通过 X11 转发（`DISPLAY`）显示 Gazebo / RViz
+- 主机：Ubuntu20.04 + ros2 foxy
 
 ## 目录结构
 
@@ -36,43 +34,12 @@ cos_ws/
 └── document/              # 官方文档 + 自研分析文档
 ```
 
-## 快速开始（仿真）
+## 快速开始
 
-```sh
-# 1. 构建工作空间（首次或改了代码后）
-~/cos_ws/elfin_ws/build_all.sh
+在仓库根目录下
+```bash
+python3 ./scripts/start_sim.py
 
-# 2. 启动 Gazebo + MoveIt2 + RViz（容器内自动以后台进程运行）
-~/cos_ws/scripts/start_sim.sh            # 日志在 ~/cos_ws/elfin_ws/log/sim/
-~/cos_ws/scripts/start_sim.sh stop       # 停止后台仿真
-
-# 3. 如需 Elfin Control Panel GUI
-~/cos_ws/scripts/start_sim.sh gazebo
+python3 ./scripts/start_real.py
 ```
 
-官方仿真命令（等价手动方式，见 `document/README _cn.md`）：
-
-```sh
-source ~/cos_ws/elfin_ws/install/setup.bash
-ros2 launch elfin5_ros2_moveit2 elfin5.launch.py          # Gazebo + MoveIt2 + RViz
-ros2 launch elfin_basic_api fake_elfin_gui.launch.py      # Control Panel（仿真用 fake 版）
-```
-
-## 真机（EtherCAT）
-
-实机包（`soem_ros2` / `elfin_ethercat_driver` / `elfin_ros_control` / `elfin_robot_bringup`）已在工作空间内。
-启动流程（4 个终端按序，需 PREEMPT_RT 内核）见 **`document/架构与数据流.md`** 真机章节，
-一键脚本与诊断指令在 `scripts/legacy/`（`start_real.py`、`诊断指令.md`）。
-
-## 文档
-
-- **`document/架构与数据流.md`** —— 全部包/节点/topic/service 清单、仿真与真机启动命令、数据流图（Obsidian/mermaid）
-- **`document/已知问题.md`** —— 坑与断链清单（launch 死代码、硬编码网卡、标定注意事项等）
-- `document/README _cn.md`、`API_description.md`、`moveit_plugin_tutorial.md` —— 华沿官方文档
-
-## 说明
-
-- `windows_sdk/` 在 Windows 主机上用 MinGW 编译运行，通过 TCP（`192.168.10.10:10003`）
-  直连控制柜，不经过 ROS，也不要放进 colcon 工作空间。
-- 容器内没有 gnome-terminal，`start_sim.sh` 会自动切换为后台进程模式；
-  在带桌面环境的 Linux 上运行则自动打开多个终端窗口。
