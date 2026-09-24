@@ -7,15 +7,17 @@
 #
 # 内容:
 #   1. source ROS2 Foxy 系统环境
-#   2. source elfin_ws 的 install/setup.bash
+#   2. source app_ws 的 install/setup.bash (overlay, 自动串接 elfin_ws)
 #   3. export ROS_LOCALHOST_ONLY=1 (与 start_sim.py / start_real.py 保持一致,
 #      否则看不到它们启动的节点和 service)
 
 _ENV_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-_SETUP="$_ENV_DIR/../elfin_ws/install/setup.bash"
+# app_ws 是自研应用层 overlay, 其 setup.bash 会自动串接 elfin_ws (厂家驱动层 underlay)
+_SETUP="$_ENV_DIR/../app_ws/install/setup.bash"
 
 if [ ! -f "$_SETUP" ]; then
-    echo "[elfin_env] 错误: 未找到 $_SETUP, 请先运行 elfin_ws/build_all.sh 编译" >&2
+    echo "[elfin_env] 错误: 未找到 $_SETUP" >&2
+    echo "[elfin_env] 请先依次构建: ~/cos_ws/elfin_ws/build_all.sh && ~/cos_ws/app_ws/build_all.sh" >&2
     return 1 2>/dev/null || exit 1
 fi
 

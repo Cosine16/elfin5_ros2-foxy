@@ -7,7 +7,7 @@ start_real.py
 启动真实的 Elfin 机械臂。
 
 每个终端中依次执行:
-    1. source ~/cos_ws/elfin_ws/install/setup.bash
+    1. source ~/cos_ws/app_ws/install/setup.bash  (overlay, 自动串接 elfin_ws)
     2. sudo + ros2 launch <实机命令>
 
 启动的 4 个终端:
@@ -24,7 +24,7 @@ start_real.py
     python3 start_real.py --wait-timeout 180 # 设置依赖等待超时(秒), 默认 120
     python3 start_real.py --check            # 只检查环境是否就绪, 不启动终端
     python3 start_real.py --list             # 只打印命令, 不启动终端
-    python3 start_real.py --workspace ~/cos_ws/elfin_ws   # 指定工作空间路径
+    python3 start_real.py --workspace ~/cos_ws/app_ws   # 指定工作空间路径
 
 启动顺序(严格 1→2→3→4, 后一步会等待前一步就绪):
     1. 硬件驱动(EtherCAT 主站 + controller_manager)
@@ -57,13 +57,14 @@ import sys
 # ---------------------------------------------------------------------------
 # 可配置项
 # ---------------------------------------------------------------------------
-CATKIN_WS = os.path.expanduser("~/cos_ws/elfin_ws")  # 工作空间路径(可被 --workspace 覆盖)
-SETUP_SCRIPT = os.path.join(CATKIN_WS, "install", "setup.bash")
+CATKIN_WS = os.path.expanduser("~/cos_ws/app_ws")  # 自研 overlay 工作空间(可被 --workspace 覆盖)
+DRIVER_WS = os.path.expanduser("~/cos_ws/elfin_ws")  # 厂家驱动层 underlay
+SETUP_SCRIPT = os.path.join(CATKIN_WS, "install", "setup.bash")  # 会自动串接 DRIVER_WS
 BRINGUP_CONFIG = os.path.join(
-    CATKIN_WS, "src", "elfin_robot", "elfin_robot_bringup", "config"
+    DRIVER_WS, "src", "elfin_robot", "elfin_robot_bringup", "config"
 )
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))  # 本脚本所在目录 (cos_ws/scripts/legacy)
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))  # 本脚本所在目录 (cos_ws/scripts)
 # 依赖等待辅助脚本在上一级 scripts/ 目录; 若被移动则回退到同目录
 WAIT_HELPER = os.path.join(SCRIPT_DIR, os.pardir, "wait_for_ros.sh")
 if not os.path.isfile(WAIT_HELPER):
@@ -330,7 +331,7 @@ def open_terminal(title, full_command):
 # 主流程
 # ---------------------------------------------------------------------------
 def main():
-    global CATKIN_WS, SETUP_SCRIPT, BRINGUP_CONFIG
+    global CATKIN_WS, SETUP_SCRIPT
 
     parser = argparse.ArgumentParser(
         description="根据 README_cn.md 自动启动 Elfin 机器人实机终端",
@@ -354,7 +355,7 @@ def main():
     parser.add_argument("--list", action="store_true",
                         help="只打印将要执行的命令, 不启动终端")
     parser.add_argument("--workspace", default=CATKIN_WS,
-                        help="工作空间路径, 默认 ~/cos_ws/elfin_ws")
+                        help="工作空间路径, 默认 ~/cos_ws/app_ws")
     parser.add_argument("--wait-timeout", type=int, default=120,
                         help="等待上一步依赖就绪的超时秒数, 默认 120")
     parser.add_argument("--no-wait", action="store_true",
@@ -363,9 +364,6 @@ def main():
 
     CATKIN_WS = os.path.expanduser(args.workspace)
     SETUP_SCRIPT = os.path.join(CATKIN_WS, "install", "setup.bash")
-    BRINGUP_CONFIG = os.path.join(
-        CATKIN_WS, "src", "elfin_robot", "elfin_robot_bringup", "config"
-    )
 
     print("=" * 70)
     print("Elfin 实机启动器")

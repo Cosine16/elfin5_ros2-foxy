@@ -9,6 +9,6 @@
     "C_Cpp.intelliSenseEngine": "default",
     "C_Cpp.intelliSenseEngineFallback": "enabled",
     "C_Cpp.errorSquiggles": "enabled",
-    "cmake.sourceDirectory": "/home/fit/cos_ws/elfin_ws/src/cos_shape",
+    "cmake.sourceDirectory": "/home/fit/cos_ws/app_ws/src/cos_shape",
     "C_Cpp.default.compilerPath": "/usr/bin/g++"
 }

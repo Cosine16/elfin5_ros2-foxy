@@ -28,6 +28,10 @@ dist/
 !.vscode/tasks.json
 
 # ---- 华研 SDK / 协议库（单独仓库管理，不在此仓库跟踪） ----
-windows_sdk/src/SDK/
-windows_sdk/src/python/CPS.py
+third_party/windows_sdk/src/SDK/
+third_party/windows_sdk/src/python/CPS.py
 document/HuayanRobot_Library_Python_V1.1.1.1.pdf
+
+# ---- RealSense 运行时生成的输出（heightmap 等） ----
+realsense_ws/generated/
+realsense_ws/generated_real/

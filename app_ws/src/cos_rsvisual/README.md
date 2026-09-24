@@ -55,7 +55,7 @@ sudo apt install ros-foxy-gazebo-plugins   # 提供 libgazebo_ros_camera.so (深
 编译:
 
 ```bash
-cd /home/fit/cos_ws/elfin_ws
+cd ~/cos_ws/app_ws
 colcon build --packages-select cos_rsvisual
 source install/setup.bash
 ```

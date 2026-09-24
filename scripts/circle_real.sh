@@ -23,14 +23,14 @@
 # 关闭机械臂电源前，请先在 Control Panel 按 "Servo Off" 去使能。
 #
 # 环境变量:
-#   SIM_WS=<path>   覆盖工作空间路径（默认 ~/cos_ws/elfin_ws）
+#   SIM_WS=<path>   覆盖工作空间路径（默认 ~/cos_ws/app_ws，overlay 已串接 elfin_ws）
 # =====================================================================
 set -euo pipefail
 
 export ROS_LOCALHOST_ONLY=1
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-WS="${SIM_WS:-$HOME/cos_ws/elfin_ws}"
+WS="${SIM_WS:-$HOME/cos_ws/app_ws}"
 SETUP="$WS/install/setup.bash"
 
 if [ ! -f "$SETUP" ]; then
