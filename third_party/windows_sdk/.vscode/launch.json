@@ -1,0 +1,150 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "C++: CLI (调试机械臂)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/dist/cli.exe",
+            "args": [
+                "--ip",
+                "192.168.10.10"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/dist",
+            "environment": [
+                {
+                    "name": "PATH",
+                    "value": "D:/workspace/toolchain/mingw-build/mingw64/bin;${env:PATH}"
+                }
+            ],
+            "externalConsole": true,
+            "MIMode": "gdb",
+            "miDebuggerPath": "D:/workspace/toolchain/mingw-build/mingw64/bin/gdb.exe",
+            "setupCommands": [
+                {
+                    "description": "启用 GDB 整齐打印",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "build-cpp-debug"
+        },
+        {
+            "name": "C++: CLI (干运行)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/dist/cli.exe",
+            "args": [
+                "--dry-run"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/dist",
+            "environment": [
+                {
+                    "name": "PATH",
+                    "value": "D:/workspace/toolchain/mingw-build/mingw64/bin;${env:PATH}"
+                }
+            ],
+            "externalConsole": true,
+            "MIMode": "gdb",
+            "miDebuggerPath": "D:/workspace/toolchain/mingw-build/mingw64/bin/gdb.exe",
+            "setupCommands": [
+                {
+                    "description": "启用 GDB 整齐打印",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "build-cpp-debug"
+        },
+        {
+            "name": "C++: Shutdown (紧急断电)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/dist/shutdown.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/dist",
+            "environment": [
+                {
+                    "name": "PATH",
+                    "value": "D:/workspace/toolchain/mingw-build/mingw64/bin;${env:PATH}"
+                }
+            ],
+            "externalConsole": true,
+            "MIMode": "gdb",
+            "miDebuggerPath": "D:/workspace/toolchain/mingw-build/mingw64/bin/gdb.exe",
+            "setupCommands": [
+                {
+                    "description": "启用 GDB 整齐打印",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "build-cpp-debug"
+        },
+        {
+            "name": "C#: CLI (调试机械臂)",
+            "type": "coreclr",
+            "request": "launch",
+            "program": "dotnet",
+            "args": [
+                "run",
+                "--project",
+                "${workspaceFolder}/src/csharp/cli.csproj",
+                "--",
+                "--ip",
+                "192.168.10.10"
+            ],
+            "cwd": "${workspaceFolder}/src/csharp",
+            "console": "externalTerminal",
+            "stopAtEntry": false,
+            "preLaunchTask": "build-csharp"
+        },
+        {
+            "name": "C#: CLI (干运行)",
+            "type": "coreclr",
+            "request": "launch",
+            "program": "dotnet",
+            "args": [
+                "run",
+                "--project",
+                "${workspaceFolder}/src/csharp/cli.csproj",
+                "--",
+                "--dry-run"
+            ],
+            "cwd": "${workspaceFolder}/src/csharp",
+            "console": "externalTerminal",
+            "stopAtEntry": false,
+            "preLaunchTask": "build-csharp"
+        },
+        {
+            "name": "Python: CLI (调试机械臂)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/python/cli.py",
+            "args": [
+                "--ip",
+                "192.168.10.10"
+            ],
+            "python": "${workspaceFolder}/.venv/Scripts/python.exe",
+            "cwd": "${workspaceFolder}/src/python",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Python: CLI (干运行)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/python/cli.py",
+            "args": [
+                "--dry-run"
+            ],
+            "python": "${workspaceFolder}/.venv/Scripts/python.exe",
+            "cwd": "${workspaceFolder}/src/python",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        }
+    ]
+}

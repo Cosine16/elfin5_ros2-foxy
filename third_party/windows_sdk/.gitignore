@@ -1,0 +1,25 @@
+
+# 依赖项
+refs
+doc
+
+# 编译产物
+dist/
+
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+
+# .NET 构建产物
+bin/
+obj/
+
+# IDE - track shared config files only
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json
+*.swp
+*.swo
+*~

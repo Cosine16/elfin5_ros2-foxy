@@ -1,0 +1,38 @@
+# ---- Python ----
+__pycache__/
+*.pyc
+*.pyo
+
+# ---- ROS2 / colcon 构建产物 ----
+build/
+install/
+log/
+build_all.log
+compile_commands.json
+
+# ---- .NET / C/C++ 编译产物 ----
+bin/
+obj/
+dist/
+*.user
+
+# ---- 编辑器临时文件 ----
+*.swp
+*.swo
+*~
+
+# ---- VS Code（根级；子项目各自决定是否跟踪）----
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json
+
+# ---- 华研 SDK / 协议库（单独仓库管理，不在此仓库跟踪） ----
+third_party/windows_sdk/src/SDK/
+third_party/windows_sdk/src/python/CPS.py
+document/HuayanRobot_Library_Python_V1.1.1.1.pdf
+
+# ---- RealSense 运行时生成的输出（heightmap 等） ----
+realsense_ws/generated/
+realsense_ws/generated_real/
+app_ws/src/cos_realsense/rviz/pointcloud.rviz

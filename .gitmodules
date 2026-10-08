@@ -1,0 +1,4 @@
+[submodule "elfin_ws/src/elfin_robot"]
+	path = elfin_ws/src/elfin_robot
+	url = git@github.com:hans-robot/elfin_robot_ros2.git
+	branch = humble_ethercat

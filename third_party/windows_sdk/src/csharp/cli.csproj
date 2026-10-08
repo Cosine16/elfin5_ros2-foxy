@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>huayan-cli</AssemblyName>
+    <RootNamespace>HuayanCli</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="RobotLibrarys">
+      <HintPath>..\..\refs\HuayanRobotC#SDK-V1.0.17.0\RobotLibrarys.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\..\refs\HuayanRobotC#SDK-V1.0.17.0\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>
