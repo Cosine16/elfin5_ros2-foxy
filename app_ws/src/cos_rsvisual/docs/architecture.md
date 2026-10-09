@@ -108,8 +108,9 @@ world ──(固定)──> elfin_base_link ──> elfin_base ──> elfin_lin
 ```
 
 - 仿真中 camera 挂载外参精确已知（URDF 定义）；
-- 真机需做眼在手上标定（推荐 easy_handeye），结果填入 launch 参数
-  `mount_xyz` / `mount_rpy`。
+- 真机需做眼在手上标定，结果填入 launch 参数 `mount_xyz` / `mount_rpy`。
+  标定工具：`cos_realsense` 的 `hand_eye_calib_node`（棋盘格 AX=XB 自研实现，
+  用法见该文件头注释；也可用 easy_handeye2）。
 - **真机人脸跟随链路的 TF 略有不同**：硬件栈的 robot_state_publisher 用
   官方 URDF（无相机），`elfin_end_link → camera_link` 由
   `elfin5_rs_face_real.launch.py` 的 static_transform_publisher 发布，
